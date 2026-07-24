@@ -82,7 +82,8 @@ def main() -> None:
     dispositivos_disponiveis = sorted(sessoes["dispositivo"].dropna().unique().tolist()) if "dispositivo" in sessoes else []
     dispositivo_escolhido = st.sidebar.selectbox("Dispositivo", [TODOS] + dispositivos_disponiveis)
     dispositivos_sel = dispositivos_disponiveis if dispositivo_escolhido == TODOS else [dispositivo_escolhido]
-    
+
+    st.sidebar.caption("Os dados vêm direto da planilha e atualizam automaticamente a cada 5 minutos.")
     st.sidebar.markdown(
         f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
         unsafe_allow_html=True,
@@ -127,15 +128,15 @@ def main() -> None:
 
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessos únicos"), unsafe_allow_html=True)
+        st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessos únicos", icon="👥"), unsafe_allow_html=True)
     with col2:
-        st.markdown(metric_html("Bases geradas", fmt_num(total_bases), f"{fmt_num(total_linhas)} linhas no total"), unsafe_allow_html=True)
+        st.markdown(metric_html("Bases geradas", fmt_num(total_bases), f"{fmt_num(total_linhas)} linhas no total", icon="📦"), unsafe_allow_html=True)
     with col3:
-        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{total_eventos} eventos"), unsafe_allow_html=True)
+        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{total_eventos} eventos", icon="✅"), unsafe_allow_html=True)
     with col4:
-        st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão"), unsafe_allow_html=True)
+        st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão", icon="⏱️"), unsafe_allow_html=True)
     with col5:
-        st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], ""), unsafe_allow_html=True)
+        st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], "", icon="🏆"), unsafe_allow_html=True)
 
     # ── Gráfico: evolução por hora ───────────────────────────────────────────
     st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)
