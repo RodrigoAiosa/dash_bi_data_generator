@@ -80,9 +80,11 @@ def main() -> None:
         f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
         unsafe_allow_html=True,
     )
-    if st.sidebar.button("🔄 Atualizar agora"):
-        st.cache_data.clear()
-        st.rerun()
+    _col_esq, _col_meio, _col_dir = st.sidebar.columns([1, 3, 1])
+    with _col_meio:
+        if st.button("🔄 Atualizar agora", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
 
     # ── Aplica filtros ───────────────────────────────────────────────────────
     ev = eventos[
