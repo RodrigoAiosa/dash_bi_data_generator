@@ -147,6 +147,10 @@ h3.section-title {
 }
 
 /* ── Botão de atualizar ── */
+[data-testid="stSidebar"] [data-testid="stButton"] {
+    display: flex;
+    justify-content: center;
+}
 [data-testid="stSidebar"] .stButton > button {
     background: #16233F !important;
     color: #EEF0EA !important;
