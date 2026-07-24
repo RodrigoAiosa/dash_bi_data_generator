@@ -147,11 +147,15 @@ h3.section-title {
 }
 
 /* ── Botão de atualizar ── */
-[data-testid="stSidebar"] [data-testid="stButton"] {
-    display: flex;
-    justify-content: center;
+[data-testid="stSidebar"] div[data-testid="stButton"] {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
 }
-[data-testid="stSidebar"] .stButton > button {
+[data-testid="stSidebar"] div[data-testid="stButton"] > button {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     background: #16233F !important;
     color: #EEF0EA !important;
     border: none !important;
@@ -159,6 +163,6 @@ h3.section-title {
     font-family: 'IBM Plex Mono', monospace !important;
     font-weight: 600 !important;
 }
-[data-testid="stSidebar"] .stButton > button:hover {
+[data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
     background: #223058 !important;
 }
