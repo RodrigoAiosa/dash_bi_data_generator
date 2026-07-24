@@ -63,8 +63,8 @@ def base_layout(fig, titulo: str = ""):
         margin=dict(l=10, r=10, t=40 if titulo else 10, b=10),
         colorway=PALETTE,
         separators=",.",
-        legend=dict(font=dict(family=FONT_MONO, size=11)),
+        legend=dict(font=dict(family=FONT_MONO, size=11, color="#000000")),
     )
-    fig.update_xaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10))
-    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10))
+    fig.update_xaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
     return fig
