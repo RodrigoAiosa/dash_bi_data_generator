@@ -42,10 +42,16 @@ def injetar_css() -> None:
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
-def metric_html(label: str, value: str, sub: str = "") -> str:
-    """HTML de um card de KPI no formato 'selo/carimbo'."""
+def metric_html(label: str, value: str, sub: str = "", icon: str = "") -> str:
+    """HTML de um card de KPI no formato 'selo/carimbo', com ícone e rótulo no topo esquerdo."""
     sub_html = f'<p class="kpi-sub">{sub}</p>' if sub else ""
-    return f'<div class="kpi-stamp"><p class="kpi-label">{label}</p><p class="kpi-value">{value}</p>{sub_html}</div>'
+    icon_html = f'<span class="kpi-icon">{icon}</span>' if icon else ""
+    return (
+        f'<div class="kpi-stamp">'
+        f'<div class="kpi-header">{icon_html}<p class="kpi-label">{label}</p></div>'
+        f'<p class="kpi-value">{value}</p>{sub_html}'
+        f'</div>'
+    )
 
 
 def fmt_num(v, casas: int = 0) -> str:
