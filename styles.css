@@ -92,7 +92,21 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+}
+.kpi-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0.5rem;
+    width: 100%;
+}
+.kpi-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
 }
 .kpi-label {
     font-family: 'IBM Plex Mono', monospace;
@@ -100,7 +114,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #6B6F66;
-    margin: 0 0 0.4rem;
+    margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -115,6 +129,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: 100%;
 }
 .kpi-sub {
     font-family: 'IBM Plex Mono', monospace;
