@@ -77,7 +77,7 @@ def main() -> None:
 
     st.sidebar.caption("Os dados vêm direto da planilha e atualizam automaticamente a cada 5 minutos.")
     st.sidebar.markdown(
-        f'<p class="kpi-sub">🕒 Última atualização: {quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
+        f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
         unsafe_allow_html=True,
     )
     if st.sidebar.button("🔄 Atualizar agora"):
