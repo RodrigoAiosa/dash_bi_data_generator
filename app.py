@@ -138,12 +138,15 @@ def main() -> None:
     with col5:
         st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], ""), unsafe_allow_html=True)
 
-    # ── Gráfico: evolução diária de eventos ─────────────────────────────────
+    # ── Gráfico: evolução por hora ───────────────────────────────────────────
     st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)
-    por_dia = ev.groupby("dia").size().reset_index(name="eventos")
-    fig_evolucao = px.area(por_dia, x="dia", y="eventos", labels={"dia": "", "eventos": "Eventos"})
+    ev = ev.copy()
+    ev["hora"] = ev["data_hora_evento"].dt.floor("h")
+    por_hora = ev.groupby("hora").size().reset_index(name="eventos")
+    fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
     fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
-    base_layout(fig_evolucao, "Eventos por dia")
+    fig_evolucao.update_xaxes(dtick=3600000, tickformat="%d/%m %Hh")
+    base_layout(fig_evolucao, "Eventos por hora")
     st.plotly_chart(fig_evolucao, use_container_width=True, config={"displayModeBar": False})
 
     # ── Gráficos: setores + ações ────────────────────────────────────────────
