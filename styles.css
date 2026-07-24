@@ -118,6 +118,15 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     margin: 0.3rem 0 0;
 }
 
+.ultima-atualizacao {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #6B6F66;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0.6rem 0;
+}
+
 /* ── Títulos de seção ── */
 h3.section-title {
     font-family: 'Bitter', serif;
