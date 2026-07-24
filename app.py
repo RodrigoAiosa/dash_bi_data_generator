@@ -50,30 +50,38 @@ def main() -> None:
     # ── Filtros (sidebar) ────────────────────────────────────────────────────
     st.sidebar.markdown("### 🔎 Filtros")
 
+    TODOS = "Todos"
+
     anos_disponiveis = sorted(eventos["ano"].dropna().unique().astype(int).tolist())
-    anos_sel = st.sidebar.multiselect("Ano", anos_disponiveis, default=anos_disponiveis)
+    ano_escolhido = st.sidebar.selectbox("Ano", [TODOS] + anos_disponiveis)
+    anos_sel = anos_disponiveis if ano_escolhido == TODOS else [ano_escolhido]
 
     eventos_ano = eventos[eventos["ano"].isin(anos_sel)] if anos_sel else eventos.iloc[0:0]
     meses_disponiveis = sorted(eventos_ano["mes"].dropna().unique().astype(int).tolist())
-    meses_sel = st.sidebar.multiselect(
-        "Mês", meses_disponiveis, default=meses_disponiveis,
-        format_func=lambda m: MESES_PT.get(m, str(m)),
+    mes_escolhido = st.sidebar.selectbox(
+        "Mês", [TODOS] + meses_disponiveis,
+        format_func=lambda m: TODOS if m == TODOS else MESES_PT.get(m, str(m)),
     )
+    meses_sel = meses_disponiveis if mes_escolhido == TODOS else [mes_escolhido]
 
     setores_disponiveis = sorted(eventos["setor_gerado"].dropna().unique().tolist())
-    setores_sel = st.sidebar.multiselect("Setor", setores_disponiveis, default=setores_disponiveis)
+    setor_escolhido = st.sidebar.selectbox("Setor", [TODOS] + setores_disponiveis)
+    setores_sel = setores_disponiveis if setor_escolhido == TODOS else [setor_escolhido]
 
     acoes_disponiveis = sorted(eventos["acao"].dropna().unique().tolist())
-    acoes_sel = st.sidebar.multiselect(
-        "Ação", acoes_disponiveis, default=acoes_disponiveis,
-        format_func=lambda a: ACOES_LABEL.get(a, a),
+    acao_escolhida = st.sidebar.selectbox(
+        "Ação", [TODOS] + acoes_disponiveis,
+        format_func=lambda a: TODOS if a == TODOS else ACOES_LABEL.get(a, a),
     )
+    acoes_sel = acoes_disponiveis if acao_escolhida == TODOS else [acao_escolhida]
 
     status_disponiveis = sorted(eventos["status"].dropna().unique().tolist())
-    status_sel = st.sidebar.multiselect("Status", status_disponiveis, default=status_disponiveis)
+    status_escolhido = st.sidebar.selectbox("Status", [TODOS] + status_disponiveis)
+    status_sel = status_disponiveis if status_escolhido == TODOS else [status_escolhido]
 
     dispositivos_disponiveis = sorted(sessoes["dispositivo"].dropna().unique().tolist()) if "dispositivo" in sessoes else []
-    dispositivos_sel = st.sidebar.multiselect("Dispositivo", dispositivos_disponiveis, default=dispositivos_disponiveis)
+    dispositivo_escolhido = st.sidebar.selectbox("Dispositivo", [TODOS] + dispositivos_disponiveis)
+    dispositivos_sel = dispositivos_disponiveis if dispositivo_escolhido == TODOS else [dispositivo_escolhido]
 
     st.sidebar.caption("Os dados vêm direto da planilha e atualizam automaticamente a cada 5 minutos.")
     st.sidebar.markdown(
