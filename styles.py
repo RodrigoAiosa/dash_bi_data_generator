@@ -66,6 +66,6 @@ def base_layout(fig, titulo: str = ""):
         separators=",.",
         legend=dict(font=dict(family=FONT_MONO, size=11, color="#000000")),
     )
-    fig.update_xaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
-    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
+    fig.update_xaxes(gridcolor=GRID, zeroline=False, title="", tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, title="", tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
     return fig
