@@ -82,8 +82,7 @@ def main() -> None:
     dispositivos_disponiveis = sorted(sessoes["dispositivo"].dropna().unique().tolist()) if "dispositivo" in sessoes else []
     dispositivo_escolhido = st.sidebar.selectbox("Dispositivo", [TODOS] + dispositivos_disponiveis)
     dispositivos_sel = dispositivos_disponiveis if dispositivo_escolhido == TODOS else [dispositivo_escolhido]
-
-    st.sidebar.caption("Os dados vêm direto da planilha e atualizam automaticamente a cada 5 minutos.")
+    
     st.sidebar.markdown(
         f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
         unsafe_allow_html=True,
