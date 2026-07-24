@@ -38,7 +38,7 @@ def main() -> None:
     """, unsafe_allow_html=True)
 
     try:
-        sessoes, eventos = carregar_dados()
+        sessoes, eventos, quando_carregou = carregar_dados()
     except Exception as e:
         st.error(f"Não foi possível carregar a planilha. Verifique o compartilhamento e o ID configurado. Detalhe: {e}")
         st.stop()
@@ -76,6 +76,10 @@ def main() -> None:
     dispositivos_sel = st.sidebar.multiselect("Dispositivo", dispositivos_disponiveis, default=dispositivos_disponiveis)
 
     st.sidebar.caption("Os dados vêm direto da planilha e atualizam automaticamente a cada 5 minutos.")
+    st.sidebar.markdown(
+        f'<p class="kpi-sub">🕒 Última atualização: {quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
+        unsafe_allow_html=True,
+    )
     if st.sidebar.button("🔄 Atualizar agora"):
         st.cache_data.clear()
         st.rerun()
