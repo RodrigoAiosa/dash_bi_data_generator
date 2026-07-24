@@ -33,7 +33,7 @@ def main() -> None:
         <div class="dash-stamp">&#10003; ao vivo</div>
         <p class="dash-eyebrow">Relatório de Uso · Dados em Tempo Real</p>
         <h1 class="dash-title">Painel de Acesso: BI Data Generator</h1>
-        <p class="dash-meta">Fonte: planilha controle_acesso (Google Sheets) · Atualiza a cada 5 minutos</p>
+        <p class="dash-meta">Fonte: · Atualiza a cada 5 minutos</p>
     </div>
     """, unsafe_allow_html=True)
 
