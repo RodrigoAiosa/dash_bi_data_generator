@@ -22,8 +22,11 @@ def url_aba(nome_aba: str) -> str:
 
 
 @st.cache_data(ttl=300, show_spinner="Carregando dados da planilha...")
-def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Lê as duas abas e devolve (sessoes, eventos) já com colunas de data tratadas."""
+def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, "datetime"]:
+    """Lê as duas abas e devolve (sessoes, eventos, quando_carregou) já com colunas de data tratadas."""
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+
     sessoes = pd.read_csv(url_aba("log_sessoes"))
     eventos = pd.read_csv(url_aba("log_eventos"))
 
@@ -34,7 +37,9 @@ def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame]:
     eventos["mes"] = eventos["data_hora_evento"].dt.month
     eventos["dia"] = eventos["data_hora_evento"].dt.date
 
-    return sessoes, eventos
+    quando_carregou = _dt.datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+    return sessoes, eventos, quando_carregou
 
 
 def duracao_para_segundos(duracao_str) -> float | None:
