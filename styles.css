@@ -1,71 +1,172 @@
-"""
-styles.py: Paleta, tipografia e helpers visuais do Painel de Acesso.
+@import url('https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
-Mesma identidade visual "documento/papel" usada no BI Data Generator:
-fundo claro, tipografia serifada (Bitter) + monoespaçada (IBM Plex Mono),
-paleta ink/verde/rust/dourado.
-"""
-import streamlit as st
+[data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    background: #EEF0EA !important;
+}
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 
-PAPER_BODY = "#EEF0EA"
-PAPER      = "#F8F9F4"
-GRID       = "#D8DAD0"
-TEXT       = "#6B6F66"
-INK        = "#16233F"
-GREEN      = "#1F6F54"
-RUST       = "#A63D2F"
-GOLD       = "#B8862E"
-PALETTE    = [INK, GREEN, RUST, GOLD, "#223058", "#6E86A8", "#8A7F5E"]
-
-FONT_DISPLAY = "Bitter, serif"
-FONT_MONO    = "IBM Plex Mono, monospace"
-FONT_BODY    = "Inter, sans-serif"
-
-MESES_PT = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
-    7: "Julho", 8: "Agosto", 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+[data-testid="stSidebar"] {
+    background: #F8F9F4 !important;
+    border-right: 1px solid #D8DAD0 !important;
+}
+[data-testid="stSidebar"] * { color: #6B6F66 !important; }
+[data-testid="stSidebar"] label p {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: #16233F !important;
 }
 
-ACOES_LABEL = {
-    "gerou_base": "Gerou base",
-    "gerou_sql": "Gerou SQL",
-    "baixou_zip": "Baixou ZIP",
-    "baixou_dicionario": "Baixou dicionário",
-    "baixou_sql": "Baixou SQL",
+/* ── Cabeçalho estilo "relatório impresso" ── */
+.dash-header {
+    background: #16233F;
+    color: #EEF0EA;
+    padding: 1.6rem 2rem 1.8rem;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+}
+.dash-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9FB0C9;
+    margin: 0 0 0.3rem;
+}
+.dash-title {
+    font-family: 'Bitter', serif;
+    font-weight: 800;
+    font-size: 1.7rem;
+    margin: 0;
+    color: #EEF0EA;
+    letter-spacing: -0.01em;
+}
+.dash-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #B9C4D8;
+    margin: 0.4rem 0 0;
+}
+.dash-stamp {
+    position: absolute;
+    top: 1.3rem;
+    right: 1.8rem;
+    border: 2px solid #6E86A8;
+    border-radius: 6px;
+    color: #9FB0C9;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    transform: rotate(-5deg);
+    opacity: 0.85;
 }
 
+/* ── KPIs em formato de selo/carimbo ── */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] {
+    display: flex;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div {
+    width: 100%;
+    display: flex;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] [data-testid="stMarkdownContainer"] {
+    width: 100%;
+    display: flex;
+}
+.kpi-stamp {
+    background: #F8F9F4;
+    border: 2px double #16233F;
+    border-radius: 4px;
+    padding: 0.9rem 1rem 0.8rem;
+    width: 100%;
+    height: 100%;
+    min-height: 128px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.kpi-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B6F66;
+    margin: 0 0 0.4rem;
+}
+.kpi-value {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin: 0;
+    color: #16233F;
+    line-height: 1.15;
+    word-wrap: break-word;
+}
+.kpi-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6B6F66;
+    margin: 0.3rem 0 0;
+}
 
-def injetar_css() -> None:
-    """Injeta o CSS customizado (lido de styles.css) na página."""
-    with open(__file__.replace("styles.py", "styles.css"), encoding="utf-8") as f:
-        css = f.read()
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+.ultima-atualizacao {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #6B6F66;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0.6rem 0;
+}
 
+/* ── Títulos de seção ── */
+h3.section-title {
+    font-family: 'Bitter', serif;
+    font-weight: 800;
+    color: #16233F;
+    font-size: 1.15rem;
+    margin: 1.6rem 0 0.8rem;
+    border-bottom: 1px solid #D8DAD0;
+    padding-bottom: 0.5rem;
+}
 
-def metric_html(label: str, value: str, sub: str = "") -> str:
-    """HTML de um card de KPI no formato 'selo/carimbo'."""
-    sub_html = f'<p class="kpi-sub">{sub}</p>' if sub else ""
-    return f'<div class="kpi-stamp"><p class="kpi-label">{label}</p><p class="kpi-value">{value}</p>{sub_html}</div>'
+/* ── Cards de gráfico e tabela ── */
+[data-testid="stPlotlyChart"], [data-testid="stDataFrame"] {
+    background: #F8F9F4;
+    border: 1px solid #D8DAD0;
+    border-radius: 8px;
+    padding: 0.6rem;
+    overflow: hidden;
+}
+[data-testid="stPlotlyChart"] > div {
+    width: 100% !important;
+}
 
-
-def fmt_num(v, casas: int = 0) -> str:
-    """Formata número no padrão brasileiro: ponto no milhar, vírgula no decimal."""
-    s = f"{v:,.{casas}f}"
-    return s.translate(str.maketrans({",": "\x00", ".": ","})).replace("\x00", ".")
-
-
-def base_layout(fig, titulo: str = ""):
-    """Aplica o tema visual padrão a uma figura Plotly."""
-    fig.update_layout(
-        height=340,
-        paper_bgcolor=PAPER, plot_bgcolor=PAPER,
-        font=dict(family=FONT_BODY, color=TEXT, size=12),
-        title=dict(text=titulo, font=dict(color=INK, size=14, family=FONT_DISPLAY), x=0.01),
-        margin=dict(l=10, r=10, t=40 if titulo else 10, b=10),
-        colorway=PALETTE,
-        separators=",.",
-        legend=dict(font=dict(family=FONT_MONO, size=11, color="#000000")),
-    )
-    fig.update_xaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
-    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickfont=dict(family=FONT_MONO, size=10, color="#000000"))
-    return fig
+/* ── Botão de atualizar ── */
+[data-testid="stSidebar"] div[data-testid="stButton"] {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] div[data-testid="stButton"] > button {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background: #16233F !important;
+    color: #EEF0EA !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
+    background: #223058 !important;
+}
