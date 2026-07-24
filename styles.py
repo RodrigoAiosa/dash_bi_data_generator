@@ -57,6 +57,7 @@ def fmt_num(v, casas: int = 0) -> str:
 def base_layout(fig, titulo: str = ""):
     """Aplica o tema visual padrão a uma figura Plotly."""
     fig.update_layout(
+        height=340,
         paper_bgcolor=PAPER, plot_bgcolor=PAPER,
         font=dict(family=FONT_BODY, color=TEXT, size=12),
         title=dict(text=titulo, font=dict(color=INK, size=14, family=FONT_DISPLAY), x=0.01),
