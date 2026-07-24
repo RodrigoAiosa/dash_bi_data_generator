@@ -67,12 +67,32 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 }
 
 /* ── KPIs em formato de selo/carimbo ── */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] {
+    display: flex;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div {
+    width: 100%;
+    display: flex;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"] [data-testid="stMarkdownContainer"] {
+    width: 100%;
+    display: flex;
+}
 .kpi-stamp {
     background: #F8F9F4;
     border: 2px double #16233F;
     border-radius: 4px;
     padding: 0.9rem 1rem 0.8rem;
+    width: 100%;
     height: 100%;
+    min-height: 128px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .kpi-label {
     font-family: 'IBM Plex Mono', monospace;
@@ -89,6 +109,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     margin: 0;
     color: #16233F;
     line-height: 1.15;
+    word-wrap: break-word;
 }
 .kpi-sub {
     font-family: 'IBM Plex Mono', monospace;
