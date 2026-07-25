@@ -64,6 +64,14 @@ def main() -> None:
     )
     meses_sel = meses_disponiveis if mes_escolhido == TODOS else [mes_escolhido]
 
+    eventos_mes = eventos_ano[eventos_ano["mes"].isin(meses_sel)] if meses_sel else eventos_ano.iloc[0:0]
+    dias_disponiveis = sorted(eventos_mes["dia"].dropna().unique().tolist())
+    dia_escolhido = st.sidebar.selectbox(
+        "Dia", [TODOS] + dias_disponiveis,
+        format_func=lambda d: TODOS if d == TODOS else d.strftime("%d/%m/%Y"),
+    )
+    dias_sel = dias_disponiveis if dia_escolhido == TODOS else [dia_escolhido]
+
     setores_disponiveis = sorted(eventos["setor_gerado"].dropna().unique().tolist())
     setor_escolhido = st.sidebar.selectbox("Setor", [TODOS] + setores_disponiveis)
     setores_sel = setores_disponiveis if setor_escolhido == TODOS else [setor_escolhido]
@@ -97,6 +105,7 @@ def main() -> None:
     ev = eventos[
         eventos["ano"].isin(anos_sel)
         & eventos["mes"].isin(meses_sel)
+        & eventos["dia"].isin(dias_sel)
         & (eventos["setor_gerado"].isin(setores_sel) | eventos["setor_gerado"].isna())
         & eventos["acao"].isin(acoes_sel)
         & eventos["status"].isin(status_sel)
@@ -107,6 +116,8 @@ def main() -> None:
         ses = ses[ses["dispositivo"].isin(dispositivos_sel)]
     if anos_sel:
         ses = ses[ses["data_hora"].dt.year.isin(anos_sel)]
+    if dias_sel:
+        ses = ses[ses["data_hora"].dt.date.isin(dias_sel)]
 
     if ev.empty:
         st.warning("Nenhum evento encontrado para os filtros selecionados.")
