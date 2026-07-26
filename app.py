@@ -1,234 +1,249 @@
+"""
+app.py: Painel de Acesso do BI Data Generator.
 
+Le as abas log_sessoes e log_eventos direto da planilha do Google Sheets
+(publicada na web) e mostra os principais indicadores de uso, com filtros
+de Ano, Mes, Setor, Acao, Status e Dispositivo na barra lateral.
+
+Como configurar: veja o README.md deste projeto.
+"""
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-import random
+import plotly.express as px
+import streamlit as st
 
-# =============================================================================
-# CONFIGURAÇÕES
-# =============================================================================
-N_SESSOES = 100_000
-N_EVENTOS_POR_SESSAO_MIN = 1
-N_EVENTOS_POR_SESSAO_MAX = 8
+from data import carregar_dados, duracao_para_segundos
+from styles import (
+    ACOES_LABEL, FONT_MONO, GREEN, INK, MESES_PT, PALETTE, RUST,
+    base_layout, fmt_num, injetar_css, metric_html,
+)
 
-ACOES = ["acessou_painel", "gerou_base", "exportou_csv", "visualizou_preview", "aplicou_filtro"]
-ACOES_PESOS = [0.15, 0.25, 0.20, 0.25, 0.15]
-
-SETORES = ["Vendas", "Marketing", "Financeiro", "RH", "Operações", "TI", "Logística", "Jurídico", "Compras", "Atendimento"]
-SETORES_PESOS = [0.18, 0.15, 0.12, 0.10, 0.12, 0.08, 0.10, 0.05, 0.05, 0.05]
-
-DISPOSITIVOS = ["Desktop", "Mobile", "Tablet"]
-DISPOSITIVOS_PESOS = [0.65, 0.30, 0.05]
-
-STATUS_OPCOES = ["sucesso", "erro", "aviso"]
-STATUS_PESOS = [0.88, 0.08, 0.04]
-
-DATA_FIM = datetime(2026, 7, 26, 12, 0, 0)
-DATA_INICIO = DATA_FIM - timedelta(days=365)
-
-ACOES_LABEL = {
-    "acessou_painel": "Acessou Painel",
-    "gerou_base": "Gerou Base",
-    "exportou_csv": "Exportou CSV",
-    "visualizou_preview": "Visualizou Preview",
-    "aplicou_filtro": "Aplicou Filtro",
-}
-
-MESES_PT = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
-}
-
-# =============================================================================
-# FUNÇÕES AUXILIARES
-# =============================================================================
-
-def fmt_num(valor, decimais=0):
-    """Formata número com separador de milhar e vírgula decimal."""
-    if decimais > 0:
-        return f"{valor:,.{decimais}f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{int(valor):,}".replace(",", ".")
+st.set_page_config(
+    page_title="Painel de Acesso: BI Data Generator",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 
-def duracao_para_segundos(d):
-    """Converte string MM:SS para segundos."""
-    if pd.isna(d):
-        return None
-    partes = str(d).split(":")
-    if len(partes) == 2:
-        return int(partes[0]) * 60 + int(partes[1])
-    return None
+def main() -> None:
+    injetar_css()
 
+    st.markdown("""
+    <div class="dash-header">
+        <div class="dash-stamp">&#10003; ao vivo</div>
+        <p class="dash-eyebrow">Relatório de Uso · Dados em Tempo Real</p>
+        <h1 class="dash-title">Painel de Acesso: BI Data Generator</h1>
+        <p class="dash-meta">· Atualiza a cada 5 minutos de forma automática</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# =============================================================================
-# 1. GERAR SESSÕES
-# =============================================================================
-print("=" * 70)
-print("  SIMULADOR PAINEL BI DATA GENERATOR — 100.000 ACESSOS ÚNICOS")
-print("=" * 70)
-print("\n🔄 Gerando sessões...")
+    try:
+        sessoes, eventos, quando_carregou = carregar_dados()
+    except Exception as e:
+        st.error(f"Não foi possível carregar a planilha. Verifique o compartilhamento e o ID configurado. Detalhe: {e}")
+        st.stop()
 
-np.random.seed(42)
-random.seed(42)
+    if eventos.empty:
+        st.info("Ainda não há eventos registrados na planilha.")
+        st.stop()
 
-sessoes_list = []
-for i in range(N_SESSOES):
-    delta_segundos = random.randint(0, int((DATA_FIM - DATA_INICIO).total_seconds()))
-    data_hora = DATA_INICIO + timedelta(seconds=delta_segundos)
+    # ── Filtros (sidebar) ────────────────────────────────────────────────────
+    st.sidebar.markdown("### 🔎 Filtros")
+
+    TODOS = "Todos"
+
+    anos_disponiveis = sorted(eventos["ano"].dropna().unique().astype(int).tolist())
+    ano_escolhido = st.sidebar.selectbox("Ano", [TODOS] + anos_disponiveis)
+    anos_sel = anos_disponiveis if ano_escolhido == TODOS else [ano_escolhido]
+
+    eventos_ano = eventos[eventos["ano"].isin(anos_sel)] if anos_sel else eventos.iloc[0:0]
+    meses_disponiveis = sorted(eventos_ano["mes"].dropna().unique().astype(int).tolist())
+    mes_escolhido = st.sidebar.selectbox(
+        "Mês", [TODOS] + meses_disponiveis,
+        format_func=lambda m: TODOS if m == TODOS else MESES_PT.get(m, str(m)),
+    )
+    meses_sel = meses_disponiveis if mes_escolhido == TODOS else [mes_escolhido]
+
+    eventos_mes = eventos_ano[eventos_ano["mes"].isin(meses_sel)] if meses_sel else eventos_ano.iloc[0:0]
+    dias_disponiveis = sorted(eventos_mes["dia"].dropna().unique().tolist())
+    dia_escolhido = st.sidebar.selectbox(
+        "Dia", [TODOS] + dias_disponiveis,
+        format_func=lambda d: TODOS if d == TODOS else d.strftime("%d/%m/%Y"),
+    )
+    dias_sel = dias_disponiveis if dia_escolhido == TODOS else [dia_escolhido]
+
+    setores_disponiveis = sorted(eventos["setor_gerado"].dropna().unique().tolist())
+    setor_escolhido = st.sidebar.selectbox("Setor", [TODOS] + setores_disponiveis)
+    setores_sel = setores_disponiveis if setor_escolhido == TODOS else [setor_escolhido]
+
+    acoes_disponiveis = sorted(eventos["acao"].dropna().unique().tolist())
+    acao_escolhida = st.sidebar.selectbox(
+        "Ação", [TODOS] + acoes_disponiveis,
+        format_func=lambda a: TODOS if a == TODOS else ACOES_LABEL.get(a, a),
+    )
+    acoes_sel = acoes_disponiveis if acao_escolhida == TODOS else [acao_escolhida]
+
+    status_disponiveis = sorted(eventos["status"].dropna().unique().tolist())
+    status_escolhido = st.sidebar.selectbox("Status", [TODOS] + status_disponiveis)
+    status_sel = status_disponiveis if status_escolhido == TODOS else [status_escolhido]
+
+    dispositivos_disponiveis = sorted(sessoes["dispositivo"].dropna().unique().tolist()) if "dispositivo" in sessoes else []
+    dispositivo_escolhido = st.sidebar.selectbox("Dispositivo", [TODOS] + dispositivos_disponiveis)
+    dispositivos_sel = dispositivos_disponiveis if dispositivo_escolhido == TODOS else [dispositivo_escolhido]
     
-    duracao_seg = int(np.random.exponential(300) + 30)
-    duracao_seg = min(duracao_seg, 2700)
-    minutos = duracao_seg // 60
-    segundos = duracao_seg % 60
-    duracao_str = f"{minutos:02d}:{segundos:02d}"
-    
-    dispositivo = random.choices(DISPOSITIVOS, weights=DISPOSITIVOS_PESOS)[0]
-    
-    sessoes_list.append({
-        "id_sessao": f"sess_{i+1:08d}",
-        "data_hora": data_hora,
-        "duracao": duracao_str,
-        "dispositivo": dispositivo,
-    })
+    st.sidebar.markdown(
+        f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
+        unsafe_allow_html=True,
+    )
+    _col_esq, _col_meio, _col_dir = st.sidebar.columns([1, 3, 1])
+    with _col_meio:
+        if st.button("🔄 Atualizar agora", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
 
-sessoes = pd.DataFrame(sessoes_list)
-sessoes = sessoes.sort_values("data_hora").reset_index(drop=True)
-print(f"   ✓ {fmt_num(len(sessoes))} sessões geradas")
+    # ── Aplica filtros ───────────────────────────────────────────────────────
+    ev = eventos[
+        eventos["ano"].isin(anos_sel)
+        & eventos["mes"].isin(meses_sel)
+        & eventos["dia"].isin(dias_sel)
+        & (eventos["setor_gerado"].isin(setores_sel) | eventos["setor_gerado"].isna())
+        & eventos["acao"].isin(acoes_sel)
+        & eventos["status"].isin(status_sel)
+    ]
 
-# =============================================================================
-# 2. GERAR EVENTOS
-# =============================================================================
-print("\n🔄 Gerando eventos...")
+    ses = sessoes.copy()
+    if dispositivos_sel and "dispositivo" in ses.columns:
+        ses = ses[ses["dispositivo"].isin(dispositivos_sel)]
+    if anos_sel:
+        ses = ses[ses["data_hora"].dt.year.isin(anos_sel)]
+    if dias_sel:
+        ses = ses[ses["data_hora"].dt.date.isin(dias_sel)]
 
-eventos_list = []
-for _, sess in sessoes.iterrows():
-    n_eventos = random.randint(N_EVENTOS_POR_SESSAO_MIN, N_EVENTOS_POR_SESSAO_MAX)
-    duracao_total_seg = int(sess["duracao"].split(":")[0]) * 60 + int(sess["duracao"].split(":")[1])
-    
-    for e in range(n_eventos):
-        offset_seg = random.randint(0, max(duracao_total_seg, 1))
-        data_hora_evento = sess["data_hora"] + timedelta(seconds=offset_seg)
-        
-        acao = random.choices(ACOES, weights=ACOES_PESOS)[0]
-        setor_gerado = random.choices(SETORES, weights=SETORES_PESOS)[0] if acao == "gerou_base" else None
-        
-        volume_linhas = None
-        if acao == "gerou_base":
-            volume_linhas = int(np.random.lognormal(8, 1.5))
-            volume_linhas = max(50, min(volume_linhas, 500_000))
-        
-        status = random.choices(STATUS_OPCOES, weights=STATUS_PESOS)[0]
-        
-        erro_detalhe = None
-        if status == "erro":
-            erros = ["Timeout", "Conexão perdida", "Dados inválidos", "Permissão negada", "Memória insuficiente"]
-            erro_detalhe = random.choice(erros)
-        
-        anomalia_ativada = "sim" if acao == "gerou_base" and random.random() < 0.15 else "não"
-        deriva_temporal_ativada = "sim" if acao == "gerou_base" and random.random() < 0.10 else "não"
-        
-        eventos_list.append({
-            "id_sessao": sess["id_sessao"],
-            "data_hora_evento": data_hora_evento,
-            "ano": data_hora_evento.year,
-            "mes": data_hora_evento.month,
-            "dia": data_hora_evento.date(),
-            "acao": acao,
-            "setor_gerado": setor_gerado,
-            "volume_linhas": volume_linhas,
-            "status": status,
-            "erro_detalhe": erro_detalhe,
-            "anomalia_ativada": anomalia_ativada,
-            "deriva_temporal_ativada": deriva_temporal_ativada,
-        })
+    if ev.empty:
+        st.warning("Nenhum evento encontrado para os filtros selecionados.")
+        st.stop()
 
-eventos = pd.DataFrame(eventos_list)
-eventos = eventos.sort_values("data_hora_evento").reset_index(drop=True)
-print(f"   ✓ {fmt_num(len(eventos))} eventos gerados")
-print(f"   ✓ Média de {len(eventos)/len(sessoes):.2f} eventos por sessão")
+    # ── KPIs ─────────────────────────────────────────────────────────────────
+    total_sessoes = ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0
+    total_eventos = len(ev)
+    gerou_base = ev[ev["acao"] == "gerou_base"]
+    total_bases = len(gerou_base)
+    total_linhas = gerou_base["volume_linhas"].fillna(0).sum()
+    taxa_sucesso = (ev["status"] == "sucesso").mean() * 100 if total_eventos else 0
+    setor_top = gerou_base["setor_gerado"].mode().iloc[0] if not gerou_base.empty and not gerou_base["setor_gerado"].mode().empty else "-"
 
-# =============================================================================
-# 3. CALCULAR KPIs (idêntico ao app.py)
-# =============================================================================
-print("\n🔄 Calculando métricas...\n")
+    duracoes = ses["duracao"].dropna().map(duracao_para_segundos).dropna() if "duracao" in ses.columns else pd.Series(dtype=float)
+    duracao_media_seg = duracoes.mean() if len(duracoes) else 0
+    duracao_media_fmt = f"{int(duracao_media_seg // 60)}min {int(duracao_media_seg % 60)}s" if duracao_media_seg else "-"
 
-total_sessoes = sessoes["id_sessao"].nunique()
-total_eventos = len(eventos)
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessos únicos", icon="👥"), unsafe_allow_html=True)
+    with col2:
+        st.markdown(metric_html("Bases geradas", fmt_num(total_bases), f"{fmt_num(total_linhas)} linhas no total", icon="📦"), unsafe_allow_html=True)
+    with col3:
+        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{total_eventos} eventos", icon="✅"), unsafe_allow_html=True)
+    with col4:
+        st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão", icon="⏱️"), unsafe_allow_html=True)
+    with col5:
+        st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], "", icon="🏆"), unsafe_allow_html=True)
 
-gerou_base = eventos[eventos["acao"] == "gerou_base"]
-total_bases = len(gerou_base)
-total_linhas = gerou_base["volume_linhas"].fillna(0).sum()
-taxa_sucesso = (eventos["status"] == "sucesso").mean() * 100
+    # ── Gráfico: evolução por hora ───────────────────────────────────────────
+    st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)
+    ev = ev.copy()
+    ev["hora"] = ev["data_hora_evento"].dt.floor("h")
+    por_hora = ev.groupby("hora").size().reset_index(name="eventos")
+    fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
+    fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
+    fig_evolucao.update_xaxes(dtick=3600000, tickformat="%d/%m %Hh")
+    base_layout(fig_evolucao, "Eventos por hora")
+    st.plotly_chart(fig_evolucao, use_container_width=True, config={"displayModeBar": False})
 
-setor_top = gerou_base["setor_gerado"].mode().iloc[0] if not gerou_base.empty and not gerou_base["setor_gerado"].mode().empty else "-"
+    # ── Gráficos: setores + ações ────────────────────────────────────────────
+    col_a, col_b = st.columns(2)
+    with col_a:
+        top_setores = gerou_base["setor_gerado"].value_counts().head(10).sort_values()
+        if not top_setores.empty:
+            fig_setores = px.bar(
+                x=top_setores.values, y=top_setores.index, orientation="h",
+                labels={"x": "Bases geradas", "y": ""},
+                text=top_setores.values,
+            )
+            fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
+            base_layout(fig_setores, "Top 10 setores mais gerados")
+            fig_setores.update_xaxes(
+                visible=False, showticklabels=False, showgrid=False, zeroline=False,
+                range=[0, top_setores.values.max() * 1.18],
+            )
+            fig_setores.update_yaxes(showgrid=False, zeroline=False)
+            st.plotly_chart(fig_setores, use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
 
-duracoes = sessoes["duracao"].dropna().map(duracao_para_segundos).dropna()
-duracao_media_seg = duracoes.mean()
-duracao_media_fmt = f"{int(duracao_media_seg // 60)}min {int(duracao_media_seg % 60)}s"
+    with col_b:
+        contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts()
+        if not contagem_acoes.empty:
+            fig_acoes = px.pie(values=contagem_acoes.values, names=contagem_acoes.index, hole=0.55)
+            fig_acoes.update_traces(marker=dict(colors=PALETTE))
+            base_layout(fig_acoes, "Ações realizadas")
+            fig_acoes.update_layout(
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5,
+                    font=dict(family=FONT_MONO, size=11, color="#000000"),
+                ),
+                margin=dict(l=10, r=10, t=40, b=70),
+            )
+            st.plotly_chart(fig_acoes, use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Nenhuma ação para os filtros selecionados.")
 
-contagem_disp = sessoes["dispositivo"].value_counts()
-contagem_acoes = eventos["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts()
+    # ── Gráficos: dispositivo + anomalia/drift ──────────────────────────────
+    col_c, col_d = st.columns(2)
+    with col_c:
+        contagem_disp = ses["dispositivo"].value_counts() if "dispositivo" in ses.columns else pd.Series(dtype=int)
+        if not contagem_disp.empty:
+            fig_disp = px.bar(
+                x=contagem_disp.index, y=contagem_disp.values, labels={"x": "", "y": "Sessões"},
+                text=contagem_disp.values,
+            )
+            fig_disp.update_traces(marker_color=GREEN, textposition="outside", textfont=dict(color="#000000", size=11))
+            base_layout(fig_disp, "Sessões por dispositivo")
+            fig_disp.update_yaxes(
+                visible=False, showticklabels=False, showgrid=False, zeroline=False,
+                range=[0, contagem_disp.values.max() * 1.18],
+            )
+            st.plotly_chart(fig_disp, use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Sem dados de dispositivo para o período selecionado.")
 
-anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
-drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
+    with col_d:
+        anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
+        drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
+        valores_modos = [anomalia_pct, drift_pct]
+        fig_modos = px.bar(
+            x=["Anomalias", "Deriva Temporal"], y=valores_modos,
+            labels={"x": "", "y": "% das bases geradas"},
+            text=[f"{v:.1f}%" for v in valores_modos],
+        )
+        fig_modos.update_traces(marker_color=RUST, textposition="outside", textfont=dict(color="#000000", size=11))
+        base_layout(fig_modos, "Uso dos modos especiais")
+        maior_valor = max(valores_modos) if max(valores_modos) > 0 else 1
+        fig_modos.update_yaxes(
+            visible=False, showticklabels=False, showgrid=False, zeroline=False,
+            range=[0, maior_valor * 1.18],
+        )
+        st.plotly_chart(fig_modos, use_container_width=True, config={"displayModeBar": False})
 
-top_setores = gerou_base["setor_gerado"].value_counts().head(10)
+    # ── Tabela: eventos recentes ─────────────────────────────────────────────
+    st.markdown('<h3 class="section-title">Eventos recentes</h3>', unsafe_allow_html=True)
+    colunas_tabela = ["data_hora_evento", "acao", "setor_gerado", "volume_linhas", "status", "erro_detalhe"]
+    colunas_existentes = [c for c in colunas_tabela if c in ev.columns]
+    st.dataframe(
+        ev[colunas_existentes].sort_values("data_hora_evento", ascending=False).head(100),
+        use_container_width=True,
+        hide_index=True,
+    )
 
-# =============================================================================
-# 4. EXIBIR RESULTADOS
-# =============================================================================
-print("─" * 70)
-print("  📊 PAINEL DE ACESSO: BI DATA GENERATOR")
-print("─" * 70)
-print(f"\n  Período: {DATA_INICIO.strftime('%d/%m/%Y')} → {DATA_FIM.strftime('%d/%m/%Y')}")
 
-print(f"\n  {'👥 Sessões (acessos únicos):':<35} {fmt_num(total_sessoes):>12}")
-print(f"  {'📦 Bases geradas:':<35} {fmt_num(total_bases):>12}")
-print(f"  {'📊 Total de linhas geradas:':<35} {fmt_num(total_linhas):>12}")
-print(f"  {'✅ Taxa de sucesso:':<35} {fmt_num(taxa_sucesso, 1):>11}%")
-print(f"  {'⏱️  Duração média por sessão:':<35} {duracao_media_fmt:>12}")
-print(f"  {'🏆 Setor mais gerado:':<35} {str(setor_top)[:18]:>12}")
-
-print(f"\n  {'📱 SESSÕES POR DISPOSITIVO':<35}")
-print(f"  {'─' * 47}")
-for disp, qtd in contagem_disp.items():
-    pct = qtd / total_sessoes * 100
-    print(f"  {'   ' + disp:<32} {fmt_num(qtd):>7}  ({pct:.1f}%)")
-
-print(f"\n  {'🎯 AÇÕES REALIZADAS':<35}")
-print(f"  {'─' * 47}")
-for acao, qtd in contagem_acoes.items():
-    pct = qtd / total_eventos * 100
-    print(f"  {'   ' + acao:<32} {fmt_num(qtd):>7}  ({pct:.1f}%)")
-
-print(f"\n  {'🔥 TOP 10 SETORES (bases geradas)':<35}")
-print(f"  {'─' * 47}")
-for i, (setor, qtd) in enumerate(top_setores.items(), 1):
-    print(f"  {'   ' + f'{i:2d}. {setor}':<32} {fmt_num(qtd):>7}")
-
-print(f"\n  {'⚡ MODOS ESPECIAIS (% das bases)':<35}")
-print(f"  {'─' * 47}")
-print(f"  {'   Anomalias ativadas:':<32} {fmt_num(anomalia_pct, 1):>7}%")
-print(f"  {'   Deriva temporal:':<32} {fmt_num(drift_pct, 1):>7}%")
-
-print(f"\n  {'📈 ESTATÍSTICAS ADICIONAIS':<35}")
-print(f"  {'─' * 47}")
-print(f"  {'   Total de eventos:':<32} {fmt_num(total_eventos):>7}")
-print(f"  {'   Eventos/sessão (média):':<32} {fmt_num(total_eventos/total_sessoes, 2):>7}")
-print(f"  {'   Linhas médias/base:':<32} {fmt_num(total_linhas/total_bases, 0):>7}")
-print(f"  {'   Taxa de erro:':<32} {fmt_num((eventos['status']=='erro').mean()*100, 1):>6}%")
-print(f"  {'   Taxa de aviso:':<32} {fmt_num((eventos['status']=='aviso').mean()*100, 1):>6}%")
-
-print("\n" + "=" * 70)
-print("  ✅ Simulação concluída! Nenhum arquivo foi salvo.")
-print("=" * 70)
-'''
-
-# Salvar o script
-output_path = "/mnt/agents/output/simulador_painel_100k.py"
-with open(output_path, "w", encoding="utf-8") as f:
-    f.write(script_content)
-
-print(f"✓ Script salvo em: {output_path}")
-print(f"  Tamanho: {len(script_content):,} caracteres")
+if __name__ == "__main__":
+    main()
