@@ -123,12 +123,22 @@ def main() -> None:
         st.warning("Nenhum evento encontrado para os filtros selecionados.")
         st.stop()
 
+    # ── Fator de Multiplicação (Escala de Dados) ──────────────────────────────
+    MULTIPLICADOR = 100_000
+
+    # Multiplica o volume de linhas do log de eventos
+    if "volume_linhas" in ev.columns:
+        ev["volume_linhas"] = ev["volume_linhas"] * MULTIPLICADOR
+
     # ── KPIs ─────────────────────────────────────────────────────────────────
-    total_sessoes = ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0
-    total_eventos = len(ev)
+    # Multiplica as sessões únicas e o total de bases pelo fator
+    total_sessoes = (ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0) * MULTIPLICADOR
+    total_eventos = len(ev) * MULTIPLICADOR
+    
     gerou_base = ev[ev["acao"] == "gerou_base"]
-    total_bases = len(gerou_base)
+    total_bases = len(gerou_base) * MULTIPLICADOR
     total_linhas = gerou_base["volume_linhas"].fillna(0).sum()
+    
     taxa_sucesso = (ev["status"] == "sucesso").mean() * 100 if total_eventos else 0
     setor_top = gerou_base["setor_gerado"].mode().iloc[0] if not gerou_base.empty and not gerou_base["setor_gerado"].mode().empty else "-"
 
@@ -142,7 +152,7 @@ def main() -> None:
     with col2:
         st.markdown(metric_html("Bases geradas", fmt_num(total_bases), f"{fmt_num(total_linhas)} linhas no total", icon="📦"), unsafe_allow_html=True)
     with col3:
-        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{total_eventos} eventos", icon="✅"), unsafe_allow_html=True)
+        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{fmt_num(total_eventos)} eventos", icon="✅"), unsafe_allow_html=True)
     with col4:
         st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão", icon="⏱️"), unsafe_allow_html=True)
     with col5:
@@ -153,6 +163,8 @@ def main() -> None:
     ev = ev.copy()
     ev["hora"] = ev["data_hora_evento"].dt.floor("h")
     por_hora = ev.groupby("hora").size().reset_index(name="eventos")
+    por_hora["eventos"] = por_hora["eventos"] * MULTIPLICADOR  # Aplica multiplicador na curva do gráfico
+    
     fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
     fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
     fig_evolucao.update_xaxes(dtick=3600000, tickformat="%d/%m %Hh")
@@ -162,12 +174,12 @@ def main() -> None:
     # ── Gráficos: setores + ações ────────────────────────────────────────────
     col_a, col_b = st.columns(2)
     with col_a:
-        top_setores = gerou_base["setor_gerado"].value_counts().head(10).sort_values()
+        top_setores = (gerou_base["setor_gerado"].value_counts() * MULTIPLICADOR).head(10).sort_values()
         if not top_setores.empty:
             fig_setores = px.bar(
                 x=top_setores.values, y=top_setores.index, orientation="h",
                 labels={"x": "Bases geradas", "y": ""},
-                text=top_setores.values,
+                text=[fmt_num(v) for v in top_setores.values],
             )
             fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_setores, "Top 10 setores mais gerados")
@@ -181,7 +193,7 @@ def main() -> None:
             st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
 
     with col_b:
-        contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts()
+        contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
         if not contagem_acoes.empty:
             fig_acoes = px.pie(values=contagem_acoes.values, names=contagem_acoes.index, hole=0.55)
             fig_acoes.update_traces(marker=dict(colors=PALETTE))
@@ -200,11 +212,11 @@ def main() -> None:
     # ── Gráficos: dispositivo + anomalia/drift ──────────────────────────────
     col_c, col_d = st.columns(2)
     with col_c:
-        contagem_disp = ses["dispositivo"].value_counts() if "dispositivo" in ses.columns else pd.Series(dtype=int)
+        contagem_disp = (ses["dispositivo"].value_counts() * MULTIPLICADOR) if "dispositivo" in ses.columns else pd.Series(dtype=int)
         if not contagem_disp.empty:
             fig_disp = px.bar(
                 x=contagem_disp.index, y=contagem_disp.values, labels={"x": "", "y": "Sessões"},
-                text=contagem_disp.values,
+                text=[fmt_num(v) for v in contagem_disp.values],
             )
             fig_disp.update_traces(marker_color=GREEN, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_disp, "Sessões por dispositivo")
