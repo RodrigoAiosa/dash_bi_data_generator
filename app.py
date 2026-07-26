@@ -247,3 +247,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+Alterar esse script, com "acessos únicos" com o valor de 1000.000 e todos os outros números que equivalem a isso
