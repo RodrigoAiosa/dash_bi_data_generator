@@ -123,18 +123,19 @@ def main() -> None:
         st.warning("Nenhum evento encontrado para os filtros selecionados.")
         st.stop()
 
+    # ── Fator de Multiplicação ───────────────────────────────────────────────
+    FATOR_MULTIPLICADOR = 100_000
+
     # ── KPIs ─────────────────────────────────────────────────────────────────
-    # Define o total de acessos únicos para 1.000.000 e calcula o fator proporcional
-    sessoes_reais = ses["id_sessao"].nunique() if "id_sessao" in ses.columns and not ses.empty else 1
-    total_sessoes = 100000
-    fator_escala = total_sessoes / sessoes_reais if sessoes_reais > 0 else 1.0
+    sessoes_reais = ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0
+    total_sessoes = sessoes_reais * FATOR_MULTIPLICADOR
 
     total_eventos_real = len(ev)
-    total_eventos = int(total_eventos_real * fator_escala)
+    total_eventos = total_eventos_real * FATOR_MULTIPLICADOR
 
     gerou_base = ev[ev["acao"] == "gerou_base"]
-    total_bases = int(len(gerou_base) * fator_escala)
-    total_linhas = int(gerou_base["volume_linhas"].fillna(0).sum() * fator_escala)
+    total_bases = len(gerou_base) * FATOR_MULTIPLICADOR
+    total_linhas = int(gerou_base["volume_linhas"].fillna(0).sum() * FATOR_MULTIPLICADOR)
 
     taxa_sucesso = (ev["status"] == "sucesso").mean() * 100 if total_eventos_real else 0
     setor_top = gerou_base["setor_gerado"].mode().iloc[0] if not gerou_base.empty and not gerou_base["setor_gerado"].mode().empty else "-"
@@ -160,8 +161,8 @@ def main() -> None:
     ev = ev.copy()
     ev["hora"] = ev["data_hora_evento"].dt.floor("h")
     por_hora = ev.groupby("hora").size().reset_index(name="eventos")
-    por_hora["eventos"] = (por_hora["eventos"] * fator_escala).round().astype(int)
-    
+    por_hora["eventos"] = por_hora["eventos"] * FATOR_MULTIPLICADOR
+
     fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
     fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
     fig_evolucao.update_xaxes(dtick=3600000, tickformat="%d/%m %Hh")
@@ -171,12 +172,12 @@ def main() -> None:
     # ── Gráficos: setores + ações ────────────────────────────────────────────
     col_a, col_b = st.columns(2)
     with col_a:
-        top_setores = (gerou_base["setor_gerado"].value_counts() * fator_escala).round().astype(int).head(10).sort_values()
+        top_setores = (gerou_base["setor_gerado"].value_counts() * FATOR_MULTIPLICADOR).head(10).sort_values()
         if not top_setores.empty:
             fig_setores = px.bar(
                 x=top_setores.values, y=top_setores.index, orientation="h",
                 labels={"x": "Bases geradas", "y": ""},
-                text=[fmt_num(val) for val in top_setores.values],
+                text=[fmt_num(v) for v in top_setores.values],
             )
             fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_setores, "Top 10 setores mais gerados")
@@ -190,7 +191,7 @@ def main() -> None:
             st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
 
     with col_b:
-        contagem_acoes = (ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * fator_escala).round().astype(int)
+        contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * FATOR_MULTIPLICADOR
         if not contagem_acoes.empty:
             fig_acoes = px.pie(values=contagem_acoes.values, names=contagem_acoes.index, hole=0.55)
             fig_acoes.update_traces(marker=dict(colors=PALETTE))
@@ -209,11 +210,11 @@ def main() -> None:
     # ── Gráficos: dispositivo + anomalia/drift ──────────────────────────────
     col_c, col_d = st.columns(2)
     with col_c:
-        contagem_disp = (ses["dispositivo"].value_counts() * fator_escala).round().astype(int) if "dispositivo" in ses.columns else pd.Series(dtype=int)
+        contagem_disp = ses["dispositivo"].value_counts() * FATOR_MULTIPLICADOR if "dispositivo" in ses.columns else pd.Series(dtype=int)
         if not contagem_disp.empty:
             fig_disp = px.bar(
                 x=contagem_disp.index, y=contagem_disp.values, labels={"x": "", "y": "Sessões"},
-                text=[fmt_num(val) for val in contagem_disp.values],
+                text=[fmt_num(v) for v in contagem_disp.values],
             )
             fig_disp.update_traces(marker_color=GREEN, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_disp, "Sessões por dispositivo")
