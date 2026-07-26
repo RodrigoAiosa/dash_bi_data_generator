@@ -1,12 +1,4 @@
 
-script_content = r'''#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Simulador de Painel BI Data Generator
-Gera 100.000 acessos únicos + eventos e exibe todos os KPIs no terminal.
-Não salva arquivos — tudo é processado em memória.
-"""
-
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
