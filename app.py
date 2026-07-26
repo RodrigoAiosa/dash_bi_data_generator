@@ -171,7 +171,10 @@ def main() -> None:
             )
             fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_setores, "Top 10 setores mais gerados")
-            fig_setores.update_xaxes(visible=False, showticklabels=False)
+            fig_setores.update_xaxes(
+                visible=False, showticklabels=False, showgrid=False, zeroline=False,
+                range=[0, top_setores.values.max() * 1.18],
+            )
             st.plotly_chart(fig_setores, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
