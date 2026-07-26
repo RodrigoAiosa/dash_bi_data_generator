@@ -124,7 +124,7 @@ def main() -> None:
         st.stop()
 
     # ── Fator de Multiplicação (Escala de Dados) ──────────────────────────────
-    MULTIPLICADOR = 100_000
+    MULTIPLICADOR = 1_000
 
     # Multiplica o volume de linhas do log de eventos
     if "volume_linhas" in ev.columns:
