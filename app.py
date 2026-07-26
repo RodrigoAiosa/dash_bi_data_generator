@@ -126,7 +126,7 @@ def main() -> None:
     # ── KPIs ─────────────────────────────────────────────────────────────────
     # Define o total de acessos únicos para 1.000.000 e calcula o fator proporcional
     sessoes_reais = ses["id_sessao"].nunique() if "id_sessao" in ses.columns and not ses.empty else 1
-    total_sessoes = 1_000_000
+    total_sessoes = 100000
     fator_escala = total_sessoes / sessoes_reais if sessoes_reais > 0 else 1.0
 
     total_eventos_real = len(ev)
