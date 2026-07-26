@@ -13,7 +13,7 @@ import streamlit as st
 
 from data import carregar_dados, duracao_para_segundos
 from styles import (
-    ACOES_LABEL, GREEN, INK, MESES_PT, PALETTE, RUST,
+    ACOES_LABEL, FONT_MONO, GREEN, INK, MESES_PT, PALETTE, RUST,
     base_layout, fmt_num, injetar_css, metric_html,
 )
 
@@ -186,6 +186,13 @@ def main() -> None:
             fig_acoes = px.pie(values=contagem_acoes.values, names=contagem_acoes.index, hole=0.55)
             fig_acoes.update_traces(marker=dict(colors=PALETTE))
             base_layout(fig_acoes, "Ações realizadas")
+            fig_acoes.update_layout(
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5,
+                    font=dict(family=FONT_MONO, size=11, color="#000000"),
+                ),
+                margin=dict(l=10, r=10, t=40, b=70),
+            )
             st.plotly_chart(fig_acoes, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Nenhuma ação para os filtros selecionados.")
@@ -195,9 +202,16 @@ def main() -> None:
     with col_c:
         contagem_disp = ses["dispositivo"].value_counts() if "dispositivo" in ses.columns else pd.Series(dtype=int)
         if not contagem_disp.empty:
-            fig_disp = px.bar(x=contagem_disp.index, y=contagem_disp.values, labels={"x": "", "y": "Sessões"})
-            fig_disp.update_traces(marker_color=GREEN)
+            fig_disp = px.bar(
+                x=contagem_disp.index, y=contagem_disp.values, labels={"x": "", "y": "Sessões"},
+                text=contagem_disp.values,
+            )
+            fig_disp.update_traces(marker_color=GREEN, textposition="outside", textfont=dict(color="#000000", size=11))
             base_layout(fig_disp, "Sessões por dispositivo")
+            fig_disp.update_yaxes(
+                visible=False, showticklabels=False, showgrid=False, zeroline=False,
+                range=[0, contagem_disp.values.max() * 1.18],
+            )
             st.plotly_chart(fig_disp, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Sem dados de dispositivo para o período selecionado.")
@@ -205,12 +219,19 @@ def main() -> None:
     with col_d:
         anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
         drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
+        valores_modos = [anomalia_pct, drift_pct]
         fig_modos = px.bar(
-            x=["Anomalias", "Deriva Temporal"], y=[anomalia_pct, drift_pct],
+            x=["Anomalias", "Deriva Temporal"], y=valores_modos,
             labels={"x": "", "y": "% das bases geradas"},
+            text=[f"{v:.1f}%" for v in valores_modos],
         )
-        fig_modos.update_traces(marker_color=RUST)
+        fig_modos.update_traces(marker_color=RUST, textposition="outside", textfont=dict(color="#000000", size=11))
         base_layout(fig_modos, "Uso dos modos especiais")
+        maior_valor = max(valores_modos) if max(valores_modos) > 0 else 1
+        fig_modos.update_yaxes(
+            visible=False, showticklabels=False, showgrid=False, zeroline=False,
+            range=[0, maior_valor * 1.18],
+        )
         st.plotly_chart(fig_modos, use_container_width=True, config={"displayModeBar": False})
 
     # ── Tabela: eventos recentes ─────────────────────────────────────────────
