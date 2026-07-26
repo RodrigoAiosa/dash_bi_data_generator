@@ -175,6 +175,7 @@ def main() -> None:
                 visible=False, showticklabels=False, showgrid=False, zeroline=False,
                 range=[0, top_setores.values.max() * 1.18],
             )
+            fig_setores.update_yaxes(showgrid=False, zeroline=False)
             st.plotly_chart(fig_setores, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
