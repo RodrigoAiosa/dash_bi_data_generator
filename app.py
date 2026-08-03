@@ -10,8 +10,14 @@ Como configurar: veja o README.md deste projeto.
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 from data import carregar_dados, duracao_para_segundos
+
+# Intervalo de atualização automática da tela (em milissegundos).
+# Alinhado ao TTL do cache em data.py (ttl=300s), para que a tela sempre
+# busque dados novos assim que o cache expirar.
+INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
 from styles import (
     ACOES_LABEL, FONT_MONO, GREEN, INK, MESES_PT, PALETTE, RUST,
     base_layout, fmt_num, injetar_css, metric_html,
@@ -26,6 +32,10 @@ st.set_page_config(
 
 
 def main() -> None:
+    # Reroda a página automaticamente a cada 5 minutos, o que também faz
+    # o cache de dados (ttl=300s) expirar e buscar os dados atualizados.
+    st_autorefresh(interval=INTERVALO_ATUALIZACAO_MS, key="auto_refresh_dados")
+
     injetar_css()
 
     st.markdown("""
