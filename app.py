@@ -17,7 +17,7 @@ from data import carregar_dados, duracao_para_segundos
 # Intervalo de atualização automática da tela (em milissegundos).
 # Alinhado ao TTL do cache em data.py (ttl=300s), para que a tela sempre
 # busque dados novos assim que o cache expirar.
-INTERVALO_ATUALIZACAO_MS = 1 * 60 * 1000
+INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
 from styles import (
     ACOES_LABEL, FONT_MONO, GREEN, INK, MESES_PT, PALETTE, RUST,
     base_layout, fmt_num, injetar_css, metric_html,
