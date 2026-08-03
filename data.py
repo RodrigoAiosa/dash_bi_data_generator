@@ -21,7 +21,7 @@ def url_aba(nome_aba: str) -> str:
     return f"https://docs.google.com/spreadsheets/d/{sheet_id()}/gviz/tq?tqx=out:csv&sheet={nome_aba}"
 
 
-@st.cache_data(ttl=300, show_spinner="Carregando dados da planilha...")
+@st.cache_data(ttl=60, show_spinner="Carregando dados da planilha...")
 def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, "datetime"]:
     """Lê as duas abas e devolve (sessoes, eventos, quando_carregou) já com colunas de data tratadas."""
     import datetime as _dt
