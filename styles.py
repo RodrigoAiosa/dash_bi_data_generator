@@ -35,6 +35,7 @@ ACOES_LABEL = {
     "abriu_simulador_pl300": "Simulador PL-300",
     "gerou_dados_causais": "Dados Causais",
     "formatou_dax": "Formatou DAX",
+    "formatou_m": "Formatou M",
 }
 
 
