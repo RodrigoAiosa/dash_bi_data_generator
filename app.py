@@ -215,15 +215,15 @@ def main() -> None:
                 pct = (valor / total_acoes * 100) if total_acoes else 0
                 largura = max((valor / maximo * 100) if maximo else 0, 30)
                 cor = cor_destaque if i == 0 else cor_padrao
-                linhas_html.append(f'''
-                    <div class="acao-pilula-item">
-                        <div class="acao-pilula-label">{nome_acao}</div>
-                        <div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor};">
-                            <span class="acao-pilula-valor">{fmt_num(valor)}</span>
-                            <span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>
-                        </div>
-                    </div>
-                ''')
+                linhas_html.append(
+                    f'<div class="acao-pilula-item">'
+                    f'<div class="acao-pilula-label">{nome_acao}</div>'
+                    f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor};">'
+                    f'<span class="acao-pilula-valor">{fmt_num(valor)}</span>'
+                    f'<span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>'
+                    f'</div>'
+                    f'</div>'
+                )
             linhas_html.append("</div>")
 
             st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
