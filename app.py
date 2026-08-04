@@ -178,12 +178,13 @@ def main() -> None:
     fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
     fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
     fig_evolucao.update_xaxes(dtick=3600000, tickformat="%d/%m %Hh")
-    base_layout(fig_evolucao, "Eventos por hora")
+    base_layout(fig_evolucao)
     st.plotly_chart(fig_evolucao, use_container_width=True, config={"displayModeBar": False})
 
     # ── Gráficos: setores + ações ────────────────────────────────────────────
     col_a, col_b = st.columns(2)
     with col_a:
+        st.markdown('<h3 class="section-title">Top 10 setores mais gerados</h3>', unsafe_allow_html=True)
         top_setores = (gerou_base["setor_gerado"].value_counts() * MULTIPLICADOR).head(10).sort_values()
         if not top_setores.empty:
             fig_setores = px.bar(
@@ -192,7 +193,7 @@ def main() -> None:
                 text=[fmt_num(v) for v in top_setores.values],
             )
             fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
-            base_layout(fig_setores, "Top 10 setores mais gerados")
+            base_layout(fig_setores, altura=420)
             fig_setores.update_xaxes(
                 visible=False, showticklabels=False, showgrid=False, zeroline=False,
                 range=[0, top_setores.values.max() * 1.18],
@@ -203,6 +204,7 @@ def main() -> None:
             st.info("Nenhuma base gerada (ação 'gerou_base') para os filtros selecionados.")
 
     with col_b:
+        st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
         contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
         if not contagem_acoes.empty:
             total_acoes = contagem_acoes.sum()
@@ -226,7 +228,6 @@ def main() -> None:
                 )
             linhas_html.append("</div>")
 
-            st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
             st.markdown("".join(linhas_html), unsafe_allow_html=True)
         else:
             st.info("Nenhuma ação para os filtros selecionados.")
@@ -234,6 +235,7 @@ def main() -> None:
     # ── Gráficos: dispositivo + anomalia/drift ──────────────────────────────
     col_c, col_d = st.columns(2)
     with col_c:
+        st.markdown('<h3 class="section-title">Sessões por dispositivo</h3>', unsafe_allow_html=True)
         contagem_disp = (ses["dispositivo"].value_counts() * MULTIPLICADOR) if "dispositivo" in ses.columns else pd.Series(dtype=int)
         if not contagem_disp.empty:
             fig_disp = px.bar(
@@ -241,7 +243,7 @@ def main() -> None:
                 text=[fmt_num(v) for v in contagem_disp.values],
             )
             fig_disp.update_traces(marker_color=GREEN, textposition="outside", textfont=dict(color="#000000", size=11))
-            base_layout(fig_disp, "Sessões por dispositivo")
+            base_layout(fig_disp)
             fig_disp.update_yaxes(
                 visible=False, showticklabels=False, showgrid=False, zeroline=False,
                 range=[0, contagem_disp.values.max() * 1.18],
@@ -251,6 +253,7 @@ def main() -> None:
             st.info("Sem dados de dispositivo para o período selecionado.")
 
     with col_d:
+        st.markdown('<h3 class="section-title">Uso dos modos especiais</h3>', unsafe_allow_html=True)
         anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
         drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
         valores_modos = [anomalia_pct, drift_pct]
@@ -260,7 +263,7 @@ def main() -> None:
             text=[f"{v:.1f}%" for v in valores_modos],
         )
         fig_modos.update_traces(marker_color=RUST, textposition="outside", textfont=dict(color="#000000", size=11))
-        base_layout(fig_modos, "Uso dos modos especiais")
+        base_layout(fig_modos)
         maior_valor = max(valores_modos) if max(valores_modos) > 0 else 1
         fig_modos.update_yaxes(
             visible=False, showticklabels=False, showgrid=False, zeroline=False,
