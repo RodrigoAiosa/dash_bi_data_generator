@@ -205,17 +205,29 @@ def main() -> None:
     with col_b:
         contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
         if not contagem_acoes.empty:
-            fig_acoes = px.pie(values=contagem_acoes.values, names=contagem_acoes.index, hole=0.55)
-            fig_acoes.update_traces(marker=dict(colors=PALETTE))
-            base_layout(fig_acoes, "Ações realizadas")
-            fig_acoes.update_layout(
-                legend=dict(
-                    orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5,
-                    font=dict(family=FONT_MONO, size=11, color="#000000"),
-                ),
-                margin=dict(l=10, r=10, t=40, b=70),
-            )
-            st.plotly_chart(fig_acoes, use_container_width=True, config={"displayModeBar": False})
+            total_acoes = contagem_acoes.sum()
+            maximo = contagem_acoes.max()
+            cor_destaque = "#C0392B"  # vermelho, só pro item mais alto
+            cor_padrao = "#3E7CB1"    # azul, pros demais
+
+            linhas_html = ['<div class="acoes-pilula-lista">']
+            for i, (nome_acao, valor) in enumerate(contagem_acoes.items()):
+                pct = (valor / total_acoes * 100) if total_acoes else 0
+                largura = max((valor / maximo * 100) if maximo else 0, 30)
+                cor = cor_destaque if i == 0 else cor_padrao
+                linhas_html.append(f'''
+                    <div class="acao-pilula-item">
+                        <div class="acao-pilula-label">{nome_acao}</div>
+                        <div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor};">
+                            <span class="acao-pilula-valor">{fmt_num(valor)}</span>
+                            <span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>
+                        </div>
+                    </div>
+                ''')
+            linhas_html.append("</div>")
+
+            st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
+            st.markdown("".join(linhas_html), unsafe_allow_html=True)
         else:
             st.info("Nenhuma ação para os filtros selecionados.")
 
