@@ -33,6 +33,8 @@ ACOES_LABEL = {
     "baixou_dicionario": "Baixou dicionário",
     "baixou_sql": "Baixou SQL",
     "abriu_simulador_pl300": "Simulador PL-300",
+    "gerou_dados_causais": "Dados Causais",
+    "formatou_dax": "Formatou DAX",
 }
 
 
