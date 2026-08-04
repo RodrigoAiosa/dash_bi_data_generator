@@ -7,6 +7,8 @@ de Ano, Mes, Setor, Acao, Status e Dispositivo na barra lateral.
 
 Como configurar: veja o README.md deste projeto.
 """
+import html
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -219,15 +221,39 @@ def main() -> None:
             total_acoes = contagem_acoes.sum()
             cor_barra = "#3E7CB1"  # mesma cor pra todas as barras, sem destaque
 
+            # Top 3 setores por ação (usando a chave crua de "acao", depois
+            # convertida pro rótulo bonito, pra casar com contagem_acoes).
+            top3_por_acao_label = {}
+            for acao_crua, grupo in ev.groupby("acao"):
+                setores_validos = grupo["setor_gerado"].dropna()
+                setores_validos = setores_validos[setores_validos != ""]
+                top3 = setores_validos.value_counts().head(3)
+                rotulo = ACOES_LABEL.get(acao_crua, acao_crua)
+                top3_por_acao_label[rotulo] = top3
+
             linhas_html = [f'<div class="acoes-pilula-lista" style="min-height:{altura_compartilhada}px;">']
             for nome_acao, valor in contagem_acoes.items():
+                valor_inteiro = int(round(valor))
                 pct = (valor / total_acoes * 100) if total_acoes else 0
                 largura = max(pct, 5)  # largura proporcional ao percentual real (escala 0-100%); o piso é só pra não virar uma linha reta quando o valor é quase zero, o texto continua legível graças ao min-width:fit-content do CSS
+
+                top3 = top3_por_acao_label.get(nome_acao, pd.Series(dtype=int))
+                if not top3.empty:
+                    linhas_top3 = "\n".join(
+                        f"{i}. {setor} ({fmt_num(qtd * MULTIPLICADOR)})"
+                        for i, (setor, qtd) in enumerate(top3.items(), start=1)
+                    )
+                    tooltip_texto = f"% Total Geral: {fmt_num(pct, 2)}%\nTop 3 por Setor:\n{linhas_top3}"
+                else:
+                    tooltip_texto = f"% Total Geral: {fmt_num(pct, 2)}%\nTop 3 por Setor: sem setor associado a essa ação"
+                tooltip_escapado = html.escape(tooltip_texto)
+
                 linhas_html.append(
                     f'<div class="acao-pilula-item">'
                     f'<div class="acao-pilula-label">{nome_acao}</div>'
-                    f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor_barra};">'
-                    f'<span class="acao-pilula-valor">{fmt_num(valor)}</span>'
+                    f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor_barra};" '
+                    f'title="{tooltip_escapado}">'
+                    f'<span class="acao-pilula-valor">{fmt_num(valor_inteiro)}</span>'
                     f'<span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>'
                     f'</div>'
                     f'</div>'
