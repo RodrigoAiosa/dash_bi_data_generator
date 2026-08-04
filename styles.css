@@ -201,7 +201,6 @@ h3.section-title {
     border: 1px solid #D8DAD0;
     border-radius: 8px;
     padding: 0.8rem 1rem;
-    min-height: 420px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
