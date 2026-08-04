@@ -194,3 +194,40 @@ h3.section-title {
 [data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
     background: #223058 !important;
 }
+
+/* ── Barras em pílula (Ações realizadas) ── */
+.acoes-pilula-lista {
+    background: #F8F9F4;
+    border: 1px solid #D8DAD0;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+}
+.acao-pilula-item {
+    margin-bottom: 14px;
+}
+.acao-pilula-item:last-child {
+    margin-bottom: 0;
+}
+.acao-pilula-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #232620;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+.acao-pilula-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px;
+    padding: 8px 16px;
+    box-sizing: border-box;
+    min-width: fit-content;
+    white-space: nowrap;
+}
+.acao-pilula-valor, .acao-pilula-pct {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #FFFFFF;
+}
