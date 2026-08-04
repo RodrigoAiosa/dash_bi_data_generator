@@ -63,10 +63,16 @@ def fmt_num(v, casas: int = 0) -> str:
     return s.translate(str.maketrans({",": "\x00", ".": ","})).replace("\x00", ".")
 
 
-def base_layout(fig, titulo: str = ""):
-    """Aplica o tema visual padrão a uma figura Plotly."""
+def base_layout(fig, titulo: str = "", altura: int = 340):
+    """Aplica o tema visual padrão a uma figura Plotly.
+
+    O título não fica mais embutido dentro do gráfico: o padrão agora é
+    usar um <h3 class="section-title"> acima do gráfico (via st.markdown),
+    igual ao que já era feito em "Ações realizadas". O parâmetro `titulo`
+    continua aceito por compatibilidade, mas fica vazio na prática.
+    """
     fig.update_layout(
-        height=340,
+        height=altura,
         paper_bgcolor=PAPER, plot_bgcolor=PAPER,
         font=dict(family=FONT_BODY, color=TEXT, size=12),
         title=dict(text=titulo, font=dict(color=INK, size=14, family=FONT_DISPLAY), x=0.01),
