@@ -254,7 +254,6 @@ def main() -> None:
                     f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor_barra};" '
                     f'title="{tooltip_escapado}">'
                     f'<span class="acao-pilula-valor">{fmt_num(valor_inteiro)}</span>'
-                    f'<span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>'
                     f'</div>'
                     f'</div>'
                 )
