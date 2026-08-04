@@ -222,7 +222,7 @@ def main() -> None:
             linhas_html = [f'<div class="acoes-pilula-lista" style="min-height:{altura_compartilhada}px;">']
             for nome_acao, valor in contagem_acoes.items():
                 pct = (valor / total_acoes * 100) if total_acoes else 0
-                largura = max(pct, 30)  # largura proporcional ao percentual real (escala 0-100%), com piso mínimo pra não sumir o texto
+                largura = max(pct, 5)  # largura proporcional ao percentual real (escala 0-100%); o piso é só pra não virar uma linha reta quando o valor é quase zero, o texto continua legível graças ao min-width:fit-content do CSS
                 linhas_html.append(
                     f'<div class="acao-pilula-item">'
                     f'<div class="acao-pilula-label">{nome_acao}</div>'
