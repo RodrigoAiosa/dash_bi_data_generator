@@ -182,6 +182,16 @@ def main() -> None:
     st.plotly_chart(fig_evolucao, use_container_width=True, config={"displayModeBar": False})
 
     # ── Gráficos: setores + ações ────────────────────────────────────────────
+    # Calcula a contagem de ações ANTES das colunas, pra poder usar o mesmo
+    # número de itens na altura dos dois gráficos (o de setores precisa
+    # bater com a altura da lista de ações, que cresce conforme surgem
+    # novas ações/abas no produto).
+    contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
+    ALTURA_BASE_PILULAS = 40
+    ALTURA_POR_PILULA = 68
+    n_acoes = len(contagem_acoes) if not contagem_acoes.empty else 1
+    altura_compartilhada = ALTURA_BASE_PILULAS + n_acoes * ALTURA_POR_PILULA
+
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown('<h3 class="section-title">Top 10 setores mais gerados</h3>', unsafe_allow_html=True)
@@ -193,7 +203,7 @@ def main() -> None:
                 text=[fmt_num(v) for v in top_setores.values],
             )
             fig_setores.update_traces(marker_color=INK, textposition="outside", textfont=dict(color="#000000", size=11))
-            base_layout(fig_setores, altura=420)
+            base_layout(fig_setores, altura=altura_compartilhada)
             fig_setores.update_xaxes(
                 visible=False, showticklabels=False, showgrid=False, zeroline=False,
                 range=[0, top_setores.values.max() * 1.18],
@@ -205,22 +215,18 @@ def main() -> None:
 
     with col_b:
         st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
-        contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
         if not contagem_acoes.empty:
             total_acoes = contagem_acoes.sum()
-            maximo = contagem_acoes.max()
-            cor_destaque = "#C0392B"  # vermelho, só pro item mais alto
-            cor_padrao = "#3E7CB1"    # azul, pros demais
+            cor_barra = "#3E7CB1"  # mesma cor pra todas as barras, sem destaque
 
-            linhas_html = ['<div class="acoes-pilula-lista">']
-            for i, (nome_acao, valor) in enumerate(contagem_acoes.items()):
+            linhas_html = [f'<div class="acoes-pilula-lista" style="min-height:{altura_compartilhada}px;">']
+            for nome_acao, valor in contagem_acoes.items():
                 pct = (valor / total_acoes * 100) if total_acoes else 0
-                largura = max((valor / maximo * 100) if maximo else 0, 30)
-                cor = cor_destaque if i == 0 else cor_padrao
+                largura = max(pct, 30)  # largura proporcional ao percentual real (escala 0-100%), com piso mínimo pra não sumir o texto
                 linhas_html.append(
                     f'<div class="acao-pilula-item">'
                     f'<div class="acao-pilula-label">{nome_acao}</div>'
-                    f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor};">'
+                    f'<div class="acao-pilula-barra" style="width:{largura:.1f}%; background:{cor_barra};">'
                     f'<span class="acao-pilula-valor">{fmt_num(valor)}</span>'
                     f'<span class="acao-pilula-pct">{fmt_num(pct, 2)}%</span>'
                     f'</div>'
