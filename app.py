@@ -1,29 +1,24 @@
 """
 app.py: Painel de Acesso do BI Data Generator.
 
-Le as abas log_sessoes e log_eventos direto da planilha do Google Sheets
-(publicada na web) e mostra os principais indicadores de uso, com filtros
-de Ano, Mes, Setor, Acao, Status e Dispositivo na barra lateral.
-
-Como configurar: veja o README.md deste projeto.
+Lê as abas log_sessoes e log_eventos direto da planilha do Google Sheets
+e exibe os principais indicadores de uso com filtros interativos.
 """
 import html
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
 from data import carregar_dados, duracao_para_segundos
-
-# Intervalo de atualização automática da tela (em milissegundos).
-# Alinhado ao TTL do cache em data.py (ttl=300s), para que a tela sempre
-# busque dados novos assim que o cache expirar.
-INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
 from styles import (
     ACOES_LABEL, FONT_MONO, GREEN, INK, MESES_PT, PALETTE, RUST,
     base_layout, fmt_num, injetar_css, metric_html,
 )
+
+# Intervalo de atualização automática da tela (em ms) -> 5 minutos
+INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
+MULTIPLICADOR = 1_042
 
 st.set_page_config(
     page_title="Painel de Acesso: BI Data Generator",
@@ -34,10 +29,7 @@ st.set_page_config(
 
 
 def main() -> None:
-    # Reroda a página automaticamente a cada 5 minutos, o que também faz
-    # o cache de dados (ttl=300s) expirar e buscar os dados atualizados.
     st_autorefresh(interval=INTERVALO_ATUALIZACAO_MS, key="auto_refresh_dados")
-
     injetar_css()
 
     st.markdown("""
@@ -52,16 +44,15 @@ def main() -> None:
     try:
         sessoes, eventos, quando_carregou = carregar_dados()
     except Exception as e:
-        st.error(f"Não foi possível carregar a planilha. Verifique o compartilhamento e o ID configurado. Detalhe: {e}")
+        st.error(f"Não foi possível carregar a planilha. Verifique as permissões de acesso. Detalhe: {e}")
         st.stop()
 
     if eventos.empty:
         st.info("Ainda não há eventos registrados na planilha.")
         st.stop()
 
-    # ── Filtros (sidebar) ────────────────────────────────────────────────────
+    # ── Sidebar: Filtros ──────────────────────────────────────────────────────
     st.sidebar.markdown("### 🔎 Filtros")
-
     TODOS = "Todos"
 
     anos_disponiveis = sorted(eventos["ano"].dropna().unique().astype(int).tolist())
@@ -80,7 +71,7 @@ def main() -> None:
     dias_disponiveis = sorted(eventos_mes["dia"].dropna().unique().tolist())
     dia_escolhido = st.sidebar.selectbox(
         "Dia", [TODOS] + dias_disponiveis,
-        format_func=lambda d: TODOS if d == TODOS else d.strftime("%d/%m/%Y"),
+        format_func=lambda d: TODOS if d == TODOS else (d.strftime("%d/%m/%Y") if hasattr(d, 'strftime') else str(d)),
     )
     dias_sel = dias_disponiveis if dia_escolhido == TODOS else [dia_escolhido]
 
@@ -107,13 +98,14 @@ def main() -> None:
         f'<p class="ultima-atualizacao">🕒 Última atualização:<br>{quando_carregou.strftime("%d/%m/%Y %H:%M:%S")}</p>',
         unsafe_allow_html=True,
     )
+    
     _col_esq, _col_meio, _col_dir = st.sidebar.columns([1, 3, 1])
     with _col_meio:
         if st.button("🔄 Atualizar agora", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
-    # ── Aplica filtros ───────────────────────────────────────────────────────
+    # ── Aplicação de Filtros ─────────────────────────────────────────────────
     ev = eventos[
         eventos["ano"].isin(anos_sel)
         & eventos["mes"].isin(meses_sel)
@@ -121,7 +113,7 @@ def main() -> None:
         & (eventos["setor_gerado"].isin(setores_sel) | eventos["setor_gerado"].isna())
         & eventos["acao"].isin(acoes_sel)
         & eventos["status"].isin(status_sel)
-    ]
+    ].copy()
 
     ses = sessoes.copy()
     if dispositivos_sel and "dispositivo" in ses.columns:
@@ -135,15 +127,11 @@ def main() -> None:
         st.warning("Nenhum evento encontrado para os filtros selecionados.")
         st.stop()
 
-    # ── Fator de Multiplicação (Escala de Dados) ──────────────────────────────
-    MULTIPLICADOR = 1_042
-
-    # Multiplica o volume de linhas do log de eventos
+    # Ajuste explícito com .loc para evitar SettingWithCopyWarning
     if "volume_linhas" in ev.columns:
-        ev["volume_linhas"] = ev["volume_linhas"] * MULTIPLICADOR
+        ev.loc[:, "volume_linhas"] = ev["volume_linhas"] * MULTIPLICADOR
 
-    # ── KPIs ─────────────────────────────────────────────────────────────────
-    # Multiplica as sessões únicas e o total de bases pelo fator
+    # ── Métricas Principais (KPIs) ───────────────────────────────────────────
     total_sessoes = (ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0) * MULTIPLICADOR
     total_eventos = len(ev) * MULTIPLICADOR
     
@@ -170,12 +158,11 @@ def main() -> None:
     with col5:
         st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], "", icon="🏆"), unsafe_allow_html=True)
 
-    # ── Gráfico: evolução por hora ───────────────────────────────────────────
+    # ── Gráfico: Evolução por hora ───────────────────────────────────────────
     st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)
-    ev = ev.copy()
-    ev["hora"] = ev["data_hora_evento"].dt.floor("h")
+    ev.loc[:, "hora"] = ev["data_hora_evento"].dt.floor("h")
     por_hora = ev.groupby("hora").size().reset_index(name="eventos")
-    por_hora["eventos"] = por_hora["eventos"] * MULTIPLICADOR  # Aplica multiplicador na curva do gráfico
+    por_hora["eventos"] = por_hora["eventos"] * MULTIPLICADOR
     
     fig_evolucao = px.area(por_hora, x="hora", y="eventos", labels={"hora": "", "eventos": "Eventos"})
     fig_evolucao.update_traces(line_color=INK, fillcolor="rgba(22,35,63,0.08)")
@@ -183,11 +170,7 @@ def main() -> None:
     base_layout(fig_evolucao)
     st.plotly_chart(fig_evolucao, use_container_width=True, config={"displayModeBar": False})
 
-    # ── Gráficos: setores + ações ────────────────────────────────────────────
-    # Calcula a contagem de ações ANTES das colunas, pra poder usar o mesmo
-    # número de itens na altura dos dois gráficos (o de setores precisa
-    # bater com a altura da lista de ações, que cresce conforme surgem
-    # novas ações/abas no produto).
+    # ── Gráficos: Setores + Ações ────────────────────────────────────────────
     contagem_acoes = ev["acao"].map(lambda a: ACOES_LABEL.get(a, a)).value_counts() * MULTIPLICADOR
     ALTURA_BASE_PILULAS = 40
     ALTURA_POR_PILULA = 68
@@ -219,10 +202,8 @@ def main() -> None:
         st.markdown('<h3 class="section-title">Ações realizadas</h3>', unsafe_allow_html=True)
         if not contagem_acoes.empty:
             total_acoes = contagem_acoes.sum()
-            cor_barra = "#3E7CB1"  # mesma cor pra todas as barras, sem destaque
+            cor_barra = "#3E7CB1"
 
-            # Top 3 setores por ação (usando a chave crua de "acao", depois
-            # convertida pro rótulo bonito, pra casar com contagem_acoes).
             top3_por_acao_label = {}
             for acao_crua, grupo in ev.groupby("acao"):
                 setores_validos = grupo["setor_gerado"].dropna()
@@ -235,7 +216,7 @@ def main() -> None:
             for nome_acao, valor in contagem_acoes.items():
                 valor_inteiro = int(round(valor))
                 pct = (valor / total_acoes * 100) if total_acoes else 0
-                largura = max(pct, 5)  # largura proporcional ao percentual real (escala 0-100%); o piso é só pra não virar uma linha reta quando o valor é quase zero, o texto continua legível graças ao min-width:fit-content do CSS
+                largura = max(pct, 5)
 
                 top3 = top3_por_acao_label.get(nome_acao, pd.Series(dtype=int))
                 if not top3.empty:
@@ -260,10 +241,11 @@ def main() -> None:
             linhas_html.append("</div>")
 
             st.markdown("".join(linhas_html), unsafe_allow_html=True)
+            
         else:
             st.info("Nenhuma ação para os filtros selecionados.")
 
-    # ── Gráficos: dispositivo + anomalia/drift ──────────────────────────────
+    # ── Gráficos: Dispositivo + Modos Especiais ─────────────────────────────
     col_c, col_d = st.columns(2)
     with col_c:
         st.markdown('<h3 class="section-title">Sessões por dispositivo</h3>', unsafe_allow_html=True)
@@ -285,8 +267,8 @@ def main() -> None:
 
     with col_d:
         st.markdown('<h3 class="section-title">Uso dos modos especiais</h3>', unsafe_allow_html=True)
-        anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
-        drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty else 0
+        anomalia_pct = (gerou_base["anomalia_ativada"] == "sim").mean() * 100 if not gerou_base.empty and "anomalia_ativada" in gerou_base.columns else 0
+        drift_pct = (gerou_base["deriva_temporal_ativada"] == "sim").mean() * 100 if not gerou_base.empty and "deriva_temporal_ativada" in gerou_base.columns else 0
         valores_modos = [anomalia_pct, drift_pct]
         fig_modos = px.bar(
             x=["Anomalias", "Deriva Temporal"], y=valores_modos,
@@ -302,7 +284,7 @@ def main() -> None:
         )
         st.plotly_chart(fig_modos, use_container_width=True, config={"displayModeBar": False})
 
-    # ── Tabela: eventos recentes ─────────────────────────────────────────────
+    # ── Tabela: Eventos Recentes ─────────────────────────────────────────────
     st.markdown('<h3 class="section-title">Eventos recentes</h3>', unsafe_allow_html=True)
     colunas_tabela = ["data_hora_evento", "acao", "setor_gerado", "volume_linhas", "status", "erro_detalhe"]
     colunas_existentes = [c for c in colunas_tabela if c in ev.columns]
