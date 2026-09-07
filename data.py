@@ -23,7 +23,7 @@ def url_aba(nome_aba: str) -> str:
     return f"https://docs.google.com/spreadsheets/d/{sheet_id()}/gviz/tq?tqx=out:csv&sheet={nome_aba}"
 
 
-@st.cache_data(ttl=300, show_spinner="Carregando dados da planilha...")
+@st.cache_data(ttl=900, show_spinner="Carregando dados da planilha...")
 def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, dt.datetime]:
     """Lê as duas abas e devolve (sessoes, eventos, quando_carregou) tratados."""
     sessoes = pd.read_csv(url_aba("log_sessoes"))
