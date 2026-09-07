@@ -5,21 +5,23 @@ Mesma identidade visual "documento/papel" usada no BI Data Generator:
 fundo claro, tipografia serifada (Bitter) + monoespaçada (IBM Plex Mono),
 paleta ink/verde/rust/dourado.
 """
+from pathlib import Path
+import pandas as pd
 import streamlit as st
 
 PAPER_BODY = "#EEF0EA"
-PAPER      = "#F8F9F4"
-GRID       = "#D8DAD0"
-TEXT       = "#6B6F66"
-INK        = "#16233F"
-GREEN      = "#1F6F54"
-RUST       = "#A63D2F"
-GOLD       = "#B8862E"
-PALETTE    = [INK, GREEN, RUST, GOLD, "#223058", "#6E86A8", "#8A7F5E"]
+PAPER = "#F8F9F4"
+GRID = "#D8DAD0"
+TEXT = "#6B6F66"
+INK = "#16233F"
+GREEN = "#1F6F54"
+RUST = "#A63D2F"
+GOLD = "#B8862E"
+PALETTE = [INK, GREEN, RUST, GOLD, "#223058", "#6E86A8", "#8A7F5E"]
 
 FONT_DISPLAY = "Bitter, serif"
-FONT_MONO    = "IBM Plex Mono, monospace"
-FONT_BODY    = "Inter, sans-serif"
+FONT_MONO = "IBM Plex Mono, monospace"
+FONT_BODY = "Inter, sans-serif"
 
 MESES_PT = {
     1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
@@ -41,9 +43,13 @@ ACOES_LABEL = {
 
 def injetar_css() -> None:
     """Injeta o CSS customizado (lido de styles.css) na página."""
-    with open(__file__.replace("styles.py", "styles.css"), encoding="utf-8") as f:
-        css = f.read()
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    css_path = Path(__file__).parent / "styles.css"
+    if css_path.exists():
+        with open(css_path, encoding="utf-8") as f:
+            css = f.read()
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    else:
+        st.warning("Arquivo styles.css não encontrado no diretório do projeto.")
 
 
 def metric_html(label: str, value: str, sub: str = "", icon: str = "") -> str:
@@ -60,18 +66,17 @@ def metric_html(label: str, value: str, sub: str = "", icon: str = "") -> str:
 
 def fmt_num(v, casas: int = 0) -> str:
     """Formata número no padrão brasileiro: ponto no milhar, vírgula no decimal."""
-    s = f"{v:,.{casas}f}"
-    return s.translate(str.maketrans({",": "\x00", ".": ","})).replace("\x00", ".")
+    if v is None or pd.isna(v):
+        return "-"
+    try:
+        s = f"{float(v):,.{casas}f}"
+        return s.translate(str.maketrans({",": "\x00", ".": ","})).replace("\x00", ".")
+    except (ValueError, TypeError):
+        return str(v)
 
 
 def base_layout(fig, titulo: str = "", altura: int = 340):
-    """Aplica o tema visual padrão a uma figura Plotly.
-
-    O título não fica mais embutido dentro do gráfico: o padrão agora é
-    usar um <h3 class="section-title"> acima do gráfico (via st.markdown),
-    igual ao que já era feito em "Ações realizadas". O parâmetro `titulo`
-    continua aceito por compatibilidade, mas fica vazio na prática.
-    """
+    """Aplica o tema visual padrão a uma figura Plotly."""
     fig.update_layout(
         height=altura,
         paper_bgcolor=PAPER, plot_bgcolor=PAPER,
