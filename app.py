@@ -18,7 +18,7 @@ from styles import (
 
 # Intervalo de atualização automática da tela (em ms) -> 5 minutos
 INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
-MULTIPLICADOR = 1_042
+MULTIPLICADOR = 1
 
 st.set_page_config(
     page_title="Painel de Acesso: BI Data Generator",
