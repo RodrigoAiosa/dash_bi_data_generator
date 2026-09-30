@@ -1,8 +1,8 @@
 # 📊 Painel de Acesso: BI Data Generator
 
-Dashboard em **Python + Streamlit** que lê ao vivo as abas `log_sessoes` e `log_eventos` da planilha de controle de acesso (Google Sheets) e mostra os principais indicadores de uso do [BI Data Generator](https://ai-bidatagenerator.streamlit.app), com filtros na barra lateral.
+Dashboard em **Python + Streamlit** que lê ao vivo a tabela `logs_uso` do banco Supabase (PostgreSQL) e mostra os principais indicadores de uso do [BI Data Generator](https://ai-bidatagenerator.streamlit.app), com filtros na barra lateral.
 
-Os dados vêm diretamente do log de acesso automático do BI Data Generator: cada vez que alguém gera uma base, baixa um ZIP, gera um script SQL etc., um evento é enviado via webhook (Google Apps Script) para a planilha, e este painel lê e visualiza esses eventos em tempo quase real (cache de 5 minutos).
+Os dados vêm diretamente do log de acesso automático do BI Data Generator: cada vez que alguém gera uma base, baixa um ZIP, gera um script SQL etc., um evento é gravado no Supabase, e este painel lê e visualiza esses eventos em tempo quase real.
 
 ---
 
@@ -55,10 +55,10 @@ Mesmo estilo "documento/papel" usado no BI Data Generator: fundo claro, cabeçal
 ```
 dash_bi_data_generator/
 ├── app.py                        # Entry point: layout, filtros, KPIs, gráficos, tabela
-├── data.py                       # Leitura (Google Sheets) e transformação dos dados
+├── data.py                       # Leitura (Supabase/PostgreSQL) e transformação dos dados
 ├── styles.py                     # Paleta, tipografia e helpers de CSS/gráfico (Python)
 ├── styles.css                    # Folha de estilos (tema "documento/papel", CSS puro)
-├── requirements.txt              # streamlit, pandas, plotly
+├── requirements.txt              # streamlit, pandas, plotly, psycopg
 ├── .gitignore                    # Ignora .streamlit/secrets.toml e afins
 └── .streamlit/
     ├── config.toml               # Tema base do Streamlit (cores combinando com styles.css)
@@ -67,7 +67,7 @@ dash_bi_data_generator/
 
 **Responsabilidade de cada módulo:**
 
-- `data.py` expõe `carregar_dados()` (cacheada por 5 min, `@st.cache_data(ttl=300)`) e `duracao_para_segundos()`. Não sabe nada de layout/visual.
+- `data.py` expõe `carregar_dados()` (cacheada por 15 min, `@st.cache_data(ttl=900)`) e `duracao_para_segundos()`. Não sabe nada de layout/visual.
 - `styles.py` expõe `injetar_css()`, `metric_html()`, `fmt_num()` e `base_layout()`. Não sabe nada sobre os dados em si.
 - `app.py` só orquestra: chama `data.py` para os dados, `styles.py` para o visual, monta os filtros e desenha os gráficos com Plotly.
 
@@ -80,7 +80,7 @@ git clone https://github.com/RodrigoAiosa/dash_bi_data_generator.git
 cd dash_bi_data_generator
 pip install -r requirements.txt
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# edite .streamlit/secrets.toml com o ID real da sua planilha (veja a seção abaixo)
+# edite .streamlit/secrets.toml com os dados de conexão do Supabase (veja a seção abaixo)
 streamlit run app.py
 ```
 
@@ -88,48 +88,35 @@ O app abre em `http://localhost:8501`.
 
 ---
 
-## 📄 Como configurar a planilha de origem
+## 🗄 Fonte de dados: Supabase
 
-O painel lê os dados de uma planilha Google Sheets com duas abas: `log_sessoes` e `log_eventos` (o mesmo formato gerado automaticamente pelo `log_acesso.py` do BI Data Generator).
+O painel lê a tabela `public.logs_uso` do projeto Supabase **BD_BIDATAGENERATOR**, onde o BI Data Generator grava cada acesso e cada ação. A tabela tem dois tipos de linha (coluna `tipo_evento`):
 
-### 1. Compartilhamento (passo que mais costuma dar erro 401)
+| tipo_evento | Vira no painel | Colunas usadas |
+|---|---|---|
+| `sessao_inicio` | **sessões** | `id_sessao`, `data_hora_evento`, `dispositivo`, `navegador`, `idioma_interface` |
+| `clique` | **eventos** | `acao`, `setor_gerado`, `volume_linhas`, `status`, `erro_detalhe`, `anomalia_ativada`, `deriva_temporal_ativada` |
 
-A planilha precisa estar com o **Compartilhamento** geral (não confundir com "Arquivo → Publicar na Web", que é outra configuração) como:
+A duração de cada sessão é o maior `duracao_segundos` entre os cliques dela (esse campo guarda o tempo desde o início da sessão). A tabela `registros` (dados de cadastro) **não** é lida pelo painel.
 
-> **Acesso geral: "Qualquer pessoa com o link"** → papel **"Leitor"**
+### Usuário somente leitura
 
-Sem isso, a leitura falha com `HTTP Error 401: Unauthorized`, mesmo que a planilha esteja publicada na web.
+A conexão usa o usuário `dash_leitura`, que só consegue fazer `SELECT` em `logs_uso` (tem uma policy de RLS própria para isso), não enxerga `registros` e não pode gravar nada. Não use o usuário `postgres` no painel.
 
-### 2. Pegue o ID da planilha
+### Configure o secret
 
-É o trecho entre `/d/` e `/edit` na URL normal da planilha (não o link de "Publicar na Web", que usa um ID diferente):
-
-```
-https://docs.google.com/spreadsheets/d/1iyqlaK2mPLDtojqYOUHagTMXlm4-5XT1gZlY26WXor0/edit
-                                       ^-------------------- ID --------------------^
-```
-
-### 3. Configure o secret
-
-Local (`.streamlit/secrets.toml`) ou no Streamlit Cloud (**Manage app → Settings → Secrets**):
+Local (`.streamlit/secrets.toml`) ou no Streamlit Cloud (**Manage app → Settings → Secrets**), com os dados do **Session pooler** (botão **Connect** no topo do Supabase):
 
 ```toml
-controle_acesso_sheet_id = "SEU_ID_AQUI"
+[supabase]
+host = "aws-0-us-west-2.pooler.supabase.com"
+port = 5432
+dbname = "postgres"
+user = "dash_leitura.SEU_PROJECT_REF"
+password = "SENHA_DO_USUARIO_DE_LEITURA"
 ```
 
-Se não configurar nada, o app cai num ID padrão de exemplo (não recomendado para uso real, configure sempre o seu).
-
-### Como a leitura funciona por baixo dos panos
-
-O app monta, para cada aba, uma URL no formato:
-
-```
-https://docs.google.com/spreadsheets/d/{ID}/gviz/tq?tqx=out:csv&sheet={nome_da_aba}
-```
-
-Essa é a API `gviz` do Google, que lê **pelo nome da aba** (`log_sessoes`, `log_eventos`) em vez de precisar descobrir o `gid` numérico de cada uma, e devolve os dados prontos como CSV, que o `pandas.read_csv()` já entende direto.
-
-Os dados ficam em cache por 5 minutos (`@st.cache_data(ttl=300)`), para não sobrecarregar o Google Sheets a cada interação. O botão **"🔄 Atualizar agora"** na barra lateral limpa o cache manualmente.
+A conexão usa SSL (`sslmode = "require"`). Os dados ficam em cache por 15 minutos (`@st.cache_data(ttl=900)`), e o botão **"🔄 Atualizar agora"** na barra lateral limpa o cache manualmente.
 
 ---
 
@@ -137,10 +124,7 @@ Os dados ficam em cache por 5 minutos (`@st.cache_data(ttl=300)`), para não sob
 
 1. Suba este repositório (ou aponte para ele diretamente).
 2. Ao criar o app, defina o **"Main file path"** como `app.py`.
-3. Em **Manage app → Settings → Secrets**, cole:
-   ```toml
-   controle_acesso_sheet_id = "SEU_ID_AQUI"
-   ```
+3. Em **Manage app → Settings → Secrets**, cole o bloco `[supabase]` acima com os valores reais.
 4. Salve, espere ~1 minuto e reinicie o app se necessário ("Reboot app" no menu de três pontinhos).
 
 ---

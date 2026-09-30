@@ -1,7 +1,7 @@
 """
 app.py: Painel de Acesso do BI Data Generator.
 
-Lê as abas log_sessoes e log_eventos direto da planilha do Google Sheets
+Lê a tabela logs_uso direto do Supabase (PostgreSQL)
 e exibe os principais indicadores de uso com filtros interativos.
 """
 import html
@@ -44,11 +44,11 @@ def main() -> None:
     try:
         sessoes, eventos, quando_carregou = carregar_dados()
     except Exception as e:
-        st.error(f"Não foi possível carregar a planilha. Verifique as permissões de acesso. Detalhe: {e}")
+        st.error(f"Não foi possível carregar os dados do Supabase. Verifique os secrets de conexão. Detalhe: {e}")
         st.stop()
 
     if eventos.empty:
-        st.info("Ainda não há eventos registrados na planilha.")
+        st.info("Ainda não há eventos registrados no banco.")
         st.stop()
 
     # ── Sidebar: Filtros ──────────────────────────────────────────────────────
