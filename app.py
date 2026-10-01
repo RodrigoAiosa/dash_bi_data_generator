@@ -133,13 +133,18 @@ def main() -> None:
 
     # ── Métricas Principais (KPIs) ───────────────────────────────────────────
     total_sessoes = (ses["id_sessao"].nunique() if "id_sessao" in ses.columns else 0) * MULTIPLICADOR
-    total_eventos = len(ev) * MULTIPLICADOR
-    
+
     gerou_base = ev[ev["acao"] == "gerou_base"]
     total_bases = len(gerou_base) * MULTIPLICADOR
     total_linhas = gerou_base["volume_linhas"].fillna(0).sum()
     
-    taxa_sucesso = (ev["status"] == "sucesso").mean() * 100 if total_eventos else 0
+    # Taxa de sucesso: erros "esperados" (validação de formulário etc., sempre
+    # vêm com erro_detalhe preenchido) não contam contra o indicador — só um
+    # erro de verdade, sem detalhe conhecido, derruba a taxa.
+    erro_com_detalhe = (ev["status"] == "erro") & ev["erro_detalhe"].notna() & (ev["erro_detalhe"] != "")
+    ev_taxa_sucesso = ev[~erro_com_detalhe]
+    total_considerado_taxa = len(ev_taxa_sucesso) * MULTIPLICADOR
+    taxa_sucesso = (ev_taxa_sucesso["status"] == "sucesso").mean() * 100 if len(ev_taxa_sucesso) else 0
     setor_top = gerou_base["setor_gerado"].mode().iloc[0] if not gerou_base.empty and not gerou_base["setor_gerado"].mode().empty else "-"
 
     duracoes = ses["duracao"].dropna().map(duracao_para_segundos).dropna() if "duracao" in ses.columns else pd.Series(dtype=float)
@@ -159,7 +164,7 @@ def main() -> None:
     with col2:
         st.markdown(metric_html("Bases geradas", fmt_num(total_bases), f"{fmt_num(total_linhas)} linhas no total", icon="📦"), unsafe_allow_html=True)
     with col3:
-        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{fmt_num(total_eventos)} eventos", icon="✅"), unsafe_allow_html=True)
+        st.markdown(metric_html("Taxa de sucesso", f"{fmt_num(taxa_sucesso, 1)}%", f"{fmt_num(total_considerado_taxa)} eventos", icon="✅"), unsafe_allow_html=True)
     with col4:
         st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão", icon="⏱️"), unsafe_allow_html=True)
     with col5:
