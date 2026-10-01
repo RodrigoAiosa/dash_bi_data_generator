@@ -146,7 +146,14 @@ def main() -> None:
     duracao_media_seg = duracoes.mean() if len(duracoes) else 0
     duracao_media_fmt = f"{int(duracao_media_seg // 60)}min {int(duracao_media_seg % 60)}s" if duracao_media_seg else "-"
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # CALCULATE( COUNTROWS(fAtividades); fAtividades[acao] = "clicou_cadastrar"; NOT(ISBLANK(fAtividades[id_registro])) )
+    if "id_registro" in ev.columns:
+        novo_cadastro = ev[(ev["acao"] == "clicou_cadastrar") & ev["id_registro"].notna()]
+    else:
+        novo_cadastro = ev.iloc[0:0]
+    total_novo_cadastro = len(novo_cadastro) * MULTIPLICADOR
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessos únicos", icon="👥"), unsafe_allow_html=True)
     with col2:
@@ -157,6 +164,8 @@ def main() -> None:
         st.markdown(metric_html("Duração média", duracao_media_fmt, "por sessão", icon="⏱️"), unsafe_allow_html=True)
     with col5:
         st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], "", icon="🏆"), unsafe_allow_html=True)
+    with col6:
+        st.markdown(metric_html("Novo Cadastro", fmt_num(total_novo_cadastro), "cadastros concluídos", icon="📝"), unsafe_allow_html=True)
 
     # ── Gráfico: Evolução por hora ───────────────────────────────────────────
     st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)

@@ -20,7 +20,7 @@ _SQL_LOGS = """
     select id_sessao, tipo_evento, acao, setor_gerado, volume_linhas,
            anomalia_ativada, deriva_temporal_ativada, status, erro_detalhe,
            dispositivo, navegador, idioma_interface, duracao_segundos,
-           data_hora_evento
+           data_hora_evento, id_registro
       from public.logs_uso
 """
 

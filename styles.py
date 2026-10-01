@@ -38,6 +38,7 @@ ACOES_LABEL = {
     "gerou_dados_causais": "Dados Causais",
     "formatou_dax": "Formatou DAX",
     "formatou_m": "Formatou M",
+    "clicou_cadastrar": "Clicou em Cadastrar",
 }
 
 
