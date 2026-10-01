@@ -158,6 +158,15 @@ def main() -> None:
         novo_cadastro = ev.iloc[0:0]
     total_novo_cadastro = len(novo_cadastro) * MULTIPLICADOR
 
+    # Funil Acesso → Cadastro: Sessões com Cadastro = DISTINCTCOUNT(id_sessao) das
+    # sessões que tiveram um "clicou_cadastrar" bem-sucedido; Taxa de Conversão =
+    # Sessões com Cadastro / Sessões. Tudo derivado de logs_uso (fAtividades),
+    # sem depender da tabela registros (dRegistro), que o painel não lê.
+    sessoes_com_cadastro = (
+        novo_cadastro["id_sessao"].nunique() if "id_sessao" in novo_cadastro.columns else 0
+    ) * MULTIPLICADOR
+    taxa_conversao = (sessoes_com_cadastro / total_sessoes * 100) if total_sessoes else 0
+
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessos únicos", icon="👥"), unsafe_allow_html=True)
@@ -171,6 +180,16 @@ def main() -> None:
         st.markdown(metric_html("Setor mais gerado", str(setor_top)[:18], "", icon="🏆"), unsafe_allow_html=True)
     with col6:
         st.markdown(metric_html("Novo Cadastro", fmt_num(total_novo_cadastro), "cadastros concluídos", icon="📝"), unsafe_allow_html=True)
+
+    # ── Funil: Acesso → Cadastro ─────────────────────────────────────────────
+    st.markdown('<h3 class="section-title">Funil: Acesso → Cadastro</h3>', unsafe_allow_html=True)
+    col_f1, col_f2, col_f3 = st.columns(3)
+    with col_f1:
+        st.markdown(metric_html("Sessões", fmt_num(total_sessoes), "acessaram a plataforma", icon="🚪"), unsafe_allow_html=True)
+    with col_f2:
+        st.markdown(metric_html("Sessões com Cadastro", fmt_num(sessoes_com_cadastro), "acessaram e se cadastraram", icon="📝"), unsafe_allow_html=True)
+    with col_f3:
+        st.markdown(metric_html("Taxa de Conversão", f"{fmt_num(taxa_conversao, 1)}%", "acesso → cadastro", icon="🎯"), unsafe_allow_html=True)
 
     # ── Gráfico: Evolução por hora ───────────────────────────────────────────
     st.markdown('<h3 class="section-title">Evolução de uso ao longo do tempo</h3>', unsafe_allow_html=True)
